@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UiPath PSE Support Assistant</title>
+<style>
+  :root {
+    --navy: #0b1f3a;
+    --navy-light: #16305a;
+    --orange: #fa4616;
+    --bg: #eef0f4;
+    --card: #ffffff;
+    --border: #dfe3ea;
+    --text: #1c2430;
+    --muted: #6b7482;
+    --green: #1a8a5f;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; height: 100%; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: var(--bg); color: var(--text); }
+
+  #app { display: flex; height: 100vh; }
+
+  /* ---------- Sidebar ---------- */
+  #sidebar {
+    width: 280px; flex-shrink: 0; background: var(--navy); color: white;
+    display: flex; flex-direction: column; padding: 20px 16px;
+  }
+  #sidebar .brand { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 22px; }
+  #sidebar .brand .logo { width: 30px; height: 30px; border-radius: 8px; background: var(--orange); flex-shrink: 0; display:flex; align-items:center; justify-content:center; font-size:16px; }
+  #sidebar .brand h1 { font-size: 14.5px; margin: 0 0 2px; font-weight: 700; line-height: 1.25; }
+  #sidebar .brand .sub { font-size: 11px; color: #a9b3c9; line-height: 1.3; }
+
+  #progressList { list-style: none; margin: 0; padding: 0; flex: 1; overflow-y: auto; }
+  #progressList li { display: flex; gap: 9px; padding: 9px 4px; border-left: 2px solid rgba(255,255,255,0.12); margin-left: 6px; padding-left: 12px; position: relative; }
+  #progressList li.current { border-left-color: var(--orange); }
+  #progressList li .tick { width: 16px; height:16px; border-radius: 50%; background: rgba(255,255,255,0.12); flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size: 10px; margin-top:1px; }
+  #progressList li.current .tick { background: var(--orange); }
+  #progressList li .txt { font-size: 12px; line-height: 1.35; }
+  #progressList li .q { color: #9aa5bd; display:block; }
+  #progressList li .a { color: white; font-weight: 600; }
+  #progressList .empty { font-size: 12px; color: #8b96ad; padding: 4px 12px; }
+
+  #restartBtn {
+    margin-top: 14px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.22);
+    color: white; border-radius: 8px; padding: 10px; font-size: 12.5px; cursor: pointer; font-weight: 600;
+  }
+  #restartBtn:hover { background: rgba(255,255,255,0.16); }
+
+  /* ---------- Main ---------- */
+  #main { flex: 1; overflow-y: auto; padding: 36px 44px; display: flex; justify-content: center; }
+  #mainInner { max-width: 760px; width: 100%; }
+
+  .question-card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 28px 30px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+  .question-card .kicker { font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); font-weight: 700; margin-bottom: 8px; }
+  .question-card h2 { font-size: 19px; margin: 0 0 20px; line-height: 1.35; color: var(--navy); }
+
+  .opt-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .opt-grid.single { grid-template-columns: 1fr; }
+  .opt-card {
+    display: flex; align-items: center; gap: 12px; text-align: left;
+    background: #fafbfc; border: 1.5px solid var(--border); border-radius: 10px;
+    padding: 14px 15px; font-size: 13.5px; font-weight: 600; color: var(--navy); cursor: pointer;
+  }
+  .opt-card .ic { font-size: 20px; flex-shrink: 0; }
+  .opt-card:hover { border-color: var(--orange); background: #fff6f2; color: var(--orange); }
+
+  .field-row select, .field-row textarea {
+    width: 100%; padding: 11px 13px; border-radius: 9px; border: 1.5px solid var(--border); font-size: 14px; font-family: inherit; background: #fafbfc;
+  }
+  .field-row textarea { resize: vertical; min-height: 70px; }
+  .go-btn { background: var(--orange); color: white; border: none; border-radius: 9px; padding: 11px 20px; font-size: 13.5px; font-weight: 700; cursor: pointer; margin-top: 12px; }
+  .go-btn:hover { background: #e13d0f; }
+  .back-link { display: inline-block; margin-top: 16px; background: none; border: none; color: var(--muted); font-size: 12.5px; cursor: pointer; text-decoration: underline; padding: 0; }
+
+  /* ---------- Result card ---------- */
+  .result-header { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+  .result-header .ic { font-size: 26px; }
+  .result-header h2 { font-size: 20px; margin: 0; color: var(--navy); }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 16px; }
+  .chip { background: #eef1f8; border: 1px solid #d7dded; color: var(--navy); font-size: 12px; font-weight: 600; padding: 5px 11px; border-radius: 100px; }
+
+  .warn { background: #fff3ec; border: 1px solid #ffd7bd; color: #8a3a12; padding: 10px 13px; border-radius: 9px; font-size: 13px; margin-bottom: 14px; }
+
+  .action-bar { display: flex; gap: 8px; margin-bottom: 20px; }
+  .action-btn { background: var(--card); border: 1.5px solid var(--border); color: var(--navy); border-radius: 8px; padding: 8px 14px; font-size: 12.5px; font-weight: 600; cursor: pointer; }
+  .action-btn:hover { border-color: var(--navy); }
+  .action-btn.primary { background: var(--navy); color: white; border-color: var(--navy); }
+  .action-btn.primary:hover { background: var(--navy-light); }
+
+  .file-block { margin-bottom: 6px; }
+  .file-block > h3.file-title { font-size: 13px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); margin: 22px 0 8px; }
+
+  details.section {
+    background: var(--card); border: 1px solid var(--border); border-radius: 11px; margin-bottom: 10px; overflow: hidden;
+  }
+  details.section > summary {
+    list-style: none; cursor: pointer; padding: 13px 16px; font-size: 14px; font-weight: 700; color: var(--navy);
+    display: flex; align-items: center; gap: 9px; user-select: none;
+  }
+  details.section > summary::-webkit-details-marker { display: none; }
+  details.section > summary .chevron { margin-left: auto; color: var(--muted); font-size: 12px; transition: transform 0.15s; }
+  details.section[open] > summary .chevron { transform: rotate(90deg); }
+  details.section > summary .badge { background: #eef1f8; color: var(--navy); font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 100px; margin-left: 6px; }
+  .section-body { padding: 4px 18px 16px 44px; font-size: 13.5px; line-height: 1.55; }
+  .section-body h1, .section-body h2, .section-body h3 { color: var(--navy); }
+  .section-body h3 { font-size: 13.5px; margin: 14px 0 6px; }
+  .section-body p { margin: 6px 0; }
+  .section-body ul, .section-body ol { margin: 6px 0; padding-left: 20px; }
+  .section-body li { margin: 4px 0; }
+  .section-body code { background: #eef0f4; padding: 1px 5px; border-radius: 4px; font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 12px; }
+  .section-body pre { background: #101828; color: #e8ecf3; padding: 10px 12px; border-radius: 8px; overflow-x: auto; font-size: 12px; margin: 8px 0; }
+  .section-body pre code { background: none; padding: 0; color: inherit; }
+  .section-body table { border-collapse: collapse; margin: 8px 0; font-size: 12.5px; width: 100%; }
+  .section-body th, .section-body td { border: 1px solid var(--border); padding: 5px 8px; text-align: left; }
+  .section-body th { background: #f0f2f6; }
+  .section-body strong { font-weight: 700; }
+
+  ul.chklist { list-style: none; padding-left: 0 !important; }
+  ul.chklist li.chk { margin: 6px 0; }
+  ul.chklist label { display: flex; align-items: flex-start; gap: 9px; cursor: pointer; }
+  ul.chklist input[type=checkbox] { margin-top: 3px; width: 15px; height: 15px; accent-color: var(--orange); flex-shrink: 0; }
+  ul.chklist label.done span { text-decoration: line-through; color: var(--muted); }
+
+  .empty-hint { text-align: center; color: var(--muted); font-size: 13px; padding: 60px 20px; }
+
+  @media (max-width: 760px) {
+    #app { flex-direction: column; }
+    #sidebar { width: 100%; flex-direction: row; align-items: center; gap: 14px; padding: 12px 16px; }
+    #sidebar .brand { margin-bottom: 0; }
+    #progressList { display: none; }
+    #restartBtn { margin-top: 0; }
+    #main { padding: 20px; }
+    .opt-grid { grid-template-columns: 1fr; }
+  }
+
+  @media print {
+    #sidebar, .action-bar, .back-link { display: none !important; }
+    #main { padding: 0; }
+    details.section { break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="sidebar">
+    <div class="brand">
+      <div class="logo">🧭</div>
+      <div>
+        <h1>UiPath PSE Support Assistant</h1>
+        <div class="sub">Interactive intake &middot; no API key, no cost</div>
+      </div>
+    </div>
+    <ul id="progressList"><li class="empty">Your steps will appear here</li></ul>
+    <button id="restartBtn">⟲ Start over</button>
+  </div>
+  <div id="main"><div id="mainInner"></div></div>
+</div>
+
+<script>
+const MD = {
+  install: "# Standalone Orchestrator \u2014 Fresh Install Guide\n\n## Scope\nNew installation of UiPath Orchestrator (Standalone Server) on a Windows Server VM.\nCovers single-node and multi-node (HA) deployments.\n\n---\n\n## Pre-flight Checklist\n\nBefore starting the installation, confirm ALL of the following:\n\n| Check | Requirement |\n|---|---|\n| OS | Windows Server 2016 / 2019 / 2022 (64-bit) |\n| RAM | Min 8 GB (16 GB recommended for production) |\n| CPU | Min 4 cores (8 recommended) |\n| Disk | Min 50 GB free on install drive |\n| .NET | .NET 6.0 or .NET 8.0 Hosting Bundle installed |\n| IIS | IIS enabled with required role services |\n| SQL Server | SQL Server 2016+ (2019/2022 recommended) |\n| SQL Account | `dbcreator` + `sysadmin` OR `db_owner` on existing DB |\n| SSL Certificate | Valid certificate for the Orchestrator FQDN (not self-signed for prod) |\n| Firewall | Port 443 open inbound; 1433 open to SQL Server |\n| Admin rights | Local Administrator on the install server |\n| License | Valid `.license` file or online activation key ready |\n\n---\n\n## Step-by-Step Install Checklist\n\n### Phase 1 \u2014 Prepare the Server\n\n- [ ] **1.1** Install IIS with the following role services:\n  ```\n  Web Server \u2192 Common HTTP Features: Static Content, Default Document, Directory Browsing, HTTP Errors\n  Web Server \u2192 Application Development: ASP.NET 4.8, .NET Extensibility 4.8, ISAPI Extensions, ISAPI Filters, WebSocket Protocol\n  Web Server \u2192 Security: Windows Authentication, Request Filtering\n  Management Tools: IIS Management Console\n  ```\n  Quick PowerShell install:\n  ```powershell\n  Install-WindowsFeature -Name Web-Server, Web-Asp-Net45, Web-Net-Ext45, Web-ISAPI-Ext, Web-ISAPI-Filter, Web-WebSockets, Web-Windows-Auth, Web-Mgmt-Console -IncludeManagementTools\n  ```\n\n- [ ] **1.2** Install .NET Hosting Bundle (download from Microsoft):\n  ```\n  https://dotnet.microsoft.com/en-us/download/dotnet/6.0  (for 2023.x)\n  https://dotnet.microsoft.com/en-us/download/dotnet/8.0  (for 2024.10+)\n  ```\n  Run `IISRESET` after installing.\n\n- [ ] **1.3** Import SSL certificate into Windows Certificate Store:\n  ```\n  certlm.msc \u2192 Personal \u2192 Certificates \u2192 Import (.pfx file)\n  Note the thumbprint \u2014 needed later\n  ```\n\n- [ ] **1.4** Prepare SQL Server:\n  - Create a dedicated SQL login for Orchestrator (SQL Auth or Windows Auth)\n  - Grant `dbcreator` role at server level (for fresh install \u2014 creates the DB)\n  - After install completes, `dbcreator` can be revoked; keep `db_owner` on the Orchestrator DB\n\n### Phase 2 \u2014 Run the Installer\n\n- [ ] **2.1** Download the correct Orchestrator MSI from UiPath Customer Portal\n- [ ] **2.2** Right-click MSI \u2192 Run as Administrator\n- [ ] **2.3** Accept license agreement\n- [ ] **2.4** Select installation components:\n  - \u2705 Orchestrator\n  - \u2705 Identity Server\n  - \u2705 Webhooks Service\n  - \u2705 Resource Catalog (2022.10+)\n- [ ] **2.5** Configure database connection:\n  - SQL Server: `<server>\\<instance>` or `<server>,<port>`\n  - Database name: e.g., `UiPath`\n  - Auth: SQL Auth (username/password) or Windows Auth\n  - Click **Test Connection** \u2014 must succeed before proceeding\n- [ ] **2.6** Configure IIS site:\n  - Site name: `UiPath Orchestrator`\n  - Port: `443` (HTTPS)\n  - Certificate: select the imported SSL cert\n- [ ] **2.7** Set the Public URL:\n  - Enter the FQDN that users will access: `https://orchestrator.company.com`\n- [ ] **2.8** Complete installation \u2014 takes 3\u20138 minutes\n\n### Phase 3 \u2014 Post-Install Configuration\n\n- [ ] **3.1** Verify IIS Application Pools are running:\n  ```\n  IIS Manager \u2192 Application Pools\n  \u2192 UiPath Orchestrator (Running)\n  \u2192 UiPath Identity (Running)\n  \u2192 UiPath Webhooks (Running)\n  \u2192 UiPath ResourceCatalog (Running)\n  ```\n\n- [ ] **3.2** Verify SSL thumbprint in Identity config:\n  ```\n  C:\\Program Files (x86)\\UiPath\\Orchestrator\\Identity\\appsettings.Production.json\n  \u2192 \"Thumbprint\": \"<must match cert thumbprint from certlm.msc>\"\n  ```\n\n- [ ] **3.3** Run Platform Configuration Tool to validate setup:\n  ```powershell\n  cd \"C:\\Program Files (x86)\\UiPath\\Orchestrator\\Tools\\PlatformConfiguration\"\n  .\\Platform.Configuration.Tool.ps1\n  ```\n\n- [ ] **3.4** Access Orchestrator in browser: `https://<your-fqdn>`\n  - Default Host admin: `admin` / password set during install\n  - Create first Tenant\n  - Activate license\n\n- [ ] **3.5** Check Windows Event Viewer for errors:\n  ```\n  Windows Logs \u2192 Application\n  Filter Source: UiPath, IIS, ASP.NET Core\n  ```\n\n---\n\n## Validation Checklist\n\n- [ ] Orchestrator portal loads without errors\n- [ ] Host admin login works\n- [ ] Tenant creation succeeds\n- [ ] License activated and seat counts correct\n- [ ] Robot can connect (test with UiPath Assistant \u2192 Machine Key)\n- [ ] Event Viewer: no critical errors in Application log\n- [ ] Identity Server health: `https://<fqdn>/identity_/.well-known/openid-configuration` returns JSON\n\n---\n\n## Common Install Errors & Fixes\n\n| Error | Cause | Fix |\n|---|---|---|\n| `Database creation failed` | SQL account lacks `dbcreator` | Grant `dbcreator` to SQL login at server level |\n| `HTTP Error 500.37` | ASP.NET Core startup timeout | Increase `startupTimeLimit` in `web.config` to 300 |\n| `The MetadataAddress must use HTTPS` | IIS HTTPS binding missing or cert mismatch | Rebind correct SSL cert in IIS; update thumbprint in `appsettings.Production.json` |\n| `Unable to connect to SQL` | Wrong connection string or firewall | Verify SQL port 1433 open; test with SSMS from install server |\n| Install hangs at IIS config | IIS not fully installed | Run PowerShell IIS install script above; restart then rerun MSI |\n\n---\n\n## Reference Links\n\n- Prerequisites: https://docs.uipath.com/orchestrator/standalone/latest/installation-guide/hardware-requirements\n- Install guide: https://docs.uipath.com/orchestrator/standalone/latest/installation-guide/installing-orchestrator\n- Platform Config Tool: https://docs.uipath.com/orchestrator/standalone/latest/installation-guide/platform-configuration-tool\n",
+  upgrade: "# Standalone Orchestrator \u2014 Upgrade Guide\n\n## Scope\nUpgrading an existing Standalone Orchestrator installation to a newer version.\nCovers in-place upgrade (same server) and side-by-side upgrade (new server).\n\n---\n\n## Upgrade Path Rules (CRITICAL)\n\n**Never skip LTS versions.** Always upgrade through the LTS chain:\n\n```\n2021.10 \u2192 2022.10 \u2192 2023.10 \u2192 2024.10   \u2705 Correct\n2021.10 \u2192 2024.10                          \u274c Not supported\n2022.4  \u2192 2023.4  \u2192 2024.10               \u2705 Correct\n```\n\n**Check compatibility before upgrading:**\n- Robot/Studio versions must be compatible with the target Orchestrator version\n- Robots can be **1 major version behind** Orchestrator (e.g., 2023.10 Robot with 2024.10 Orchestrator \u2705)\n- Robots **cannot be ahead** of Orchestrator version\n\n---\n\n## Pre-Upgrade Checklist\n\n- [ ] **Backup SQL database** \u2014 full backup before any upgrade attempt\n  ```sql\n  BACKUP DATABASE [UiPath] TO DISK = 'C:\\Backup\\UiPath_PreUpgrade.bak'\n  WITH COMPRESSION, STATS = 10\n  ```\n- [ ] **Backup all config files:**\n  ```\n  C:\\Program Files (x86)\\UiPath\\Orchestrator\\UiPath.Orchestrator.dll.config\n  C:\\Program Files (x86)\\UiPath\\Orchestrator\\Identity\\appsettings.Production.json\n  C:\\Program Files (x86)\\UiPath\\Orchestrator\\Webhooks\\appsettings.Production.json\n  C:\\Program Files (x86)\\UiPath\\Orchestrator\\ResourceCatalog\\appsettings.Production.json\n  C:\\Program Files (x86)\\UiPath\\Orchestrator\\web.config\n  ```\n- [ ] **Note current version** (Help \u2192 About in Orchestrator portal)\n- [ ] **Note SSL certificate thumbprint** (certlm.msc \u2192 Personal \u2192 Certificates)\n- [ ] **Confirm SQL account** still has `db_owner` on the Orchestrator database\n- [ ] **Check .NET Hosting Bundle** \u2014 upgrade may require newer .NET version:\n  - 2023.10 \u2192 .NET 6.0\n  - 2024.10 \u2192 .NET 8.0\n- [ ] **Notify users** \u2014 schedule a maintenance window (Orchestrator will be down ~15\u201330 min)\n- [ ] **Stop all active Robot jobs** (or wait for completion)\n- [ ] **Confirm license** covers the target version\n\n---\n\n## Step-by-Step Upgrade Checklist\n\n### Phase 1 \u2014 Pre-Upgrade\n\n- [ ] **1.1** Take SQL database backup (see above)\n- [ ] **1.2** Copy config file backups to a safe location off the server\n- [ ] **1.3** If upgrading .NET version \u2014 install new .NET Hosting Bundle first, run `IISRESET`\n- [ ] **1.4** Download the new version MSI from UiPath Customer Portal\n- [ ] **1.5** Stop IIS to prevent new connections during upgrade:\n  ```cmd\n  iisreset /stop\n  ```\n\n### Phase 2 \u2014 Run Upgrade MSI\n\n- [ ] **2.1** Right-click new MSI \u2192 Run as Administrator\n- [ ] **2.2** Installer detects existing installation \u2014 confirms upgrade mode\n- [ ] **2.3** Verify database connection string is pre-populated correctly\n- [ ] **2.4** Click **Test Connection** \u2014 must succeed\n- [ ] **2.5** Proceed with upgrade \u2014 installer runs DB migrations automatically\n- [ ] **2.6** Wait for completion (10\u201320 minutes depending on DB size)\n- [ ] **2.7** Installer restarts IIS automatically at completion\n\n### Phase 3 \u2014 Post-Upgrade Validation\n\n- [ ] **3.1** Verify IIS Application Pools all show **Running**\n\n- [ ] **3.2** Re-check SSL thumbprint in Identity config (upgrade sometimes resets this):\n  ```json\n  // C:\\Program Files (x86)\\UiPath\\Orchestrator\\Identity\\appsettings.Production.json\n  \"Thumbprint\": \"<verify matches cert in certlm.msc>\"\n  ```\n\n- [ ] **3.3** Run Platform Configuration Tool:\n  ```powershell\n  cd \"C:\\Program Files (x86)\\UiPath\\Orchestrator\\Tools\\PlatformConfiguration\"\n  .\\Platform.Configuration.Tool.ps1\n  ```\n\n- [ ] **3.4** Access Orchestrator in browser \u2014 confirm version number updated\n\n- [ ] **3.5** Test login (Host admin + Tenant user)\n\n- [ ] **3.6** Run a test Robot job end-to-end\n\n- [ ] **3.7** Check Event Viewer for new errors post-upgrade:\n  ```\n  Windows Logs \u2192 Application \u2192 Filter by time (last 30 minutes)\n  ```\n\n- [ ] **3.8** Review SQL Identity log tables \u2014 check they're not bloated post-upgrade:\n  ```sql\n  SELECT COUNT(*) FROM dbo.Logs\n  SELECT COUNT(*) FROM [identity].[Logs]\n  -- If > 10 million rows, schedule cleanup\n  ```\n\n---\n\n## Upgrade-Specific Common Errors\n\n| Error | Cause | Fix |\n|---|---|---|\n| `HTTP Error 500.37` after upgrade | .NET version mismatch | Install correct .NET Hosting Bundle; IISRESET |\n| `MetadataAddress must use HTTPS` | Thumbprint reset during upgrade | Update thumbprint in `Identity\\appsettings.Production.json` |\n| `Invalid issuer` login error | PublicUrl changed or identity config mismatch | Run Platform Config Tool with correct URL |\n| DB migration timeout | Large DB / slow SQL | Increase SQL command timeout; run migration manually via script |\n| Robots show `Disconnected` post-upgrade | Machine key changed or URL mismatch | Re-register robots with new machine key from Orchestrator |\n| `Object reference not set` on Webhooks | Webhooks config not updated | Restore Webhooks `appsettings.Production.json` from backup |\n\n---\n\n## SQL Maintenance \u2014 Recommended Before Upgrade\n\nFor databases with large log tables (>10M rows), run this cleanup before upgrading:\n\n```sql\n-- Check sizes\nSELECT COUNT(*) AS LogCount FROM dbo.Logs\nSELECT COUNT(*) AS IdentityLogCount FROM [identity].[Logs]\nSELECT COUNT(*) AS PersistedGrantCount FROM [identity].[PersistedGrants]\n\n-- Clean Orchestrator logs (keep last 30 days)\nWHILE 1=1\nBEGIN\n    DELETE TOP (100000) FROM dbo.Logs\n    WHERE TimeStamp < DATEADD(DAY, -30, GETUTCDATE())\n    IF @@ROWCOUNT = 0 BREAK\n    WAITFOR DELAY '00:00:01'\nEND\n\n-- Clean Identity logs\nDELETE FROM [identity].[Logs]\nWHERE TimeStamp < DATEADD(DAY, -60, GETUTCDATE())\n\n-- Clean expired PersistedGrants\nDELETE FROM [identity].[PersistedGrants]\nWHERE Expiration < GETUTCDATE()\n```\n\n---\n\n## Reference Links\n\n- Upgrade guide: https://docs.uipath.com/orchestrator/standalone/latest/installation-guide/upgrading-orchestrator\n- Upgrade paths: https://docs.uipath.com/orchestrator/standalone/latest/installation-guide/upgrade-paths\n- Performance best practices: https://docs.uipath.com/orchestrator/standalone/latest/installation-guide/performance-best-practices\n",
+  as: "# Automation Suite \u2014 Install & Upgrade Guide (Kubernetes / OpenShift)\n\n## Scope\nInstallation and upgrade of UiPath Automation Suite on Kubernetes (AKS, EKS, GKE)\nor Red Hat OpenShift. Covers cluster setup, cluster_config.json, Helm/ArgoCD deployment,\nand upgrade execution.\n\n---\n\n## Deployment Profiles\n\nChoose the correct profile before starting:\n\n| Profile | Use Case | Min Nodes |\n|---|---|---|\n| `single_node_serverless` | Dev/Test only | 1 node |\n| `multi_node_serverless` | Production small | 3 nodes |\n| `ha_prod` | Production HA | 5+ nodes |\n| `custom` | Advanced/enterprise | Variable |\n\n> **Never use single_node in production.** Data loss risk on node failure.\n\n---\n\n## Pre-Install Checklist (Kubernetes)\n\n### Infrastructure Requirements\n\n- [ ] Kubernetes version: **1.26\u20131.31** (check AS version compatibility matrix)\n- [ ] Node OS: Ubuntu 20.04 / 22.04 LTS (RHEL 8/9 for OpenShift)\n- [ ] Server nodes: Min 16 vCPU, 32 GB RAM per node (production)\n- [ ] Agent nodes: Min 8 vCPU, 16 GB RAM per node\n- [ ] Storage: Block storage CSI driver installed (gp3 for AWS, Premium_LRS for Azure)\n- [ ] Persistent Volume default StorageClass set\n- [ ] LoadBalancer or Ingress controller available (NGINX recommended)\n- [ ] DNS entry pointing to cluster LoadBalancer IP/FQDN\n- [ ] SSL certificate for cluster FQDN (wildcard recommended: `*.company.com`)\n- [ ] Outbound internet access (or air-gap with private registry configured)\n\n### Tools Required on Install Machine\n\n```bash\n# Verify these are available\nkubectl version --client\nhelm version\njq --version\nopenssl version\n```\n\n### Pre-Install Network Checks\n\n```bash\n# Verify DNS resolves to cluster\nnslookup <your-AS-fqdn>\n\n# Test kubectl connectivity\nkubectl get nodes\nkubectl get namespaces\n```\n\n---\n\n## Step-by-Step Install Checklist\n\n### Phase 1 \u2014 Prepare cluster_config.json\n\n- [ ] **1.1** Download the installer package from UiPath Customer Portal\n- [ ] **1.2** Extract and review the sample `cluster_config.json`\n- [ ] **1.3** Configure required fields:\n\n```json\n{\n  \"fqdn\": \"automationsuite.company.com\",\n  \"multiNode\": true,\n  \"profile\": \"ha_prod\",\n  \"admin_username\": \"admin\",\n  \"admin_password\": \"<strong-password>\",\n  \"rke_token\": \"<generated-token>\",\n  \"fixed_rke_address\": \"<server-node-1-ip>\",\n  \"infra\": {\n    \"docker_registry\": {\n      \"url\": \"registry.uipath.com\",\n      \"username\": \"<your-uipath-portal-email>\",\n      \"password\": \"<your-uipath-portal-password>\"\n    }\n  },\n  \"orchestrator\": { \"enabled\": true },\n  \"identity\": { \"enabled\": true },\n  \"uipath-insights\": { \"enabled\": false },\n  \"smtp\": {\n    \"host\": \"<smtp-host>\",\n    \"port\": 587,\n    \"username\": \"<smtp-user>\",\n    \"password\": \"<smtp-pass>\",\n    \"from_address\": \"uipath@company.com\",\n    \"use_tls\": true\n  }\n}\n```\n\n- [ ] **1.4** Validate JSON syntax: `jq . cluster_config.json`\n\n### Phase 2 \u2014 Run Installer\n\n```bash\n# Make installer executable\nchmod +x installUiPathAS.sh\n\n# Dry run first (validates config without deploying)\n./installUiPathAS.sh cluster_config.json --dry-run\n\n# Full install\n./installUiPathAS.sh cluster_config.json\n```\n\n- [ ] **2.1** Monitor install progress \u2014 takes 45\u201390 minutes\n- [ ] **2.2** Watch for pod failures during install:\n  ```bash\n  watch kubectl get pods -n uipath\n  ```\n\n### Phase 3 \u2014 Post-Install Validation\n\n- [ ] **3.1** Verify all pods Running/Completed:\n  ```bash\n  kubectl get pods -n uipath | grep -v \"Running\\|Completed\"\n  # Should return no results if healthy\n  ```\n\n- [ ] **3.2** Verify ArgoCD applications are Synced:\n  ```bash\n  kubectl get applications -n argocd\n  # All should show: SYNC STATUS = Synced, HEALTH STATUS = Healthy\n  ```\n\n- [ ] **3.3** Access Orchestrator portal: `https://<fqdn>`\n\n- [ ] **3.4** Check all services accessible:\n  - `https://<fqdn>/orchestrator_` \u2014 Orchestrator\n  - `https://<fqdn>/identity_` \u2014 Identity\n  - `https://<fqdn>/webhook_` \u2014 Webhooks\n\n- [ ] **3.5** Run health check:\n  ```bash\n  kubectl get pods -n uipath -o wide\n  kubectl top nodes\n  kubectl top pods -n uipath\n  ```\n\n---\n\n## Upgrade Checklist (Automation Suite)\n\n### Pre-Upgrade\n\n- [ ] **Check supported upgrade paths** in the AS upgrade matrix (not all version hops are supported)\n- [ ] **Take etcd snapshot** (cluster state backup):\n  ```bash\n  ./configureUiPathAS.sh etcd-snapshot\n  ```\n- [ ] **Take SQL/PostgreSQL backup** if using external DB\n- [ ] **Backup cluster_config.json**\n- [ ] **Confirm ArgoCD is healthy** \u2014 no stuck syncs:\n  ```bash\n  kubectl get applications -n argocd\n  ```\n- [ ] **Check node capacity** \u2014 upgrade requires headroom for rolling restarts\n\n### Upgrade Execution\n\n```bash\n# Download new installer version\n# Update cluster_config.json with new version if required\n\n# Run upgrade\n./installUiPathAS.sh cluster_config.json --upgrade\n\n# Monitor progress\nwatch kubectl get pods -n uipath\nkubectl get applications -n argocd -w\n```\n\n### Post-Upgrade Validation\n\n- [ ] All ArgoCD apps: `Synced` + `Healthy`\n- [ ] All pods: `Running` or `Completed`\n- [ ] Orchestrator portal accessible and version updated\n- [ ] Test Robot connection and job execution\n- [ ] Check for OOMKilled pods (memory pressure after upgrade):\n  ```bash\n  kubectl get pods -n uipath | grep OOMKill\n  kubectl describe pod <pod-name> -n uipath | grep -A5 \"OOMKilled\"\n  ```\n\n---\n\n## Common AS Errors & Fixes\n\n| Error | Cause | Fix |\n|---|---|---|\n| Pod `OOMKilled` | Memory limit too low | Increase memory limits in `cluster_config.json`; re-apply |\n| ArgoCD sync loop | Self-heal fighting manual patch | Disable self-heal before patching; re-enable after |\n| `redisenterpriseclusters not found` | Redis CRD deleted/missing | Force delete REC, remove finalizers, re-enable self-heal, trigger recovery job |\n| `MetadataAddress must use HTTPS` | Internal URL has wrong path prefix | Internal K8s URLs don't need `identity_/` prefix \u2014 correct value is `http://identity-service-api.uipath.svc.cluster.local/connect/token` |\n| Persistent Volume stuck `Pending` | StorageClass not set as default | `kubectl patch storageclass <name> -p '{\"metadata\": {\"annotations\":{\"storageclass.kubernetes.io/is-default-class\":\"true\"}}}'` |\n| Image pull `ErrImagePull` | Registry credentials expired | Update registry credentials in `cluster_config.json`; re-apply |\n\n## Redis Emergency Recovery (Reference \u2014 BofA Pattern)\n\n```bash\n# 1. Disable ArgoCD self-heal\nkubectl -n argocd patch application redis-cluster --type=json \\\n  -p '[{\"op\":\"replace\",\"path\":\"/spec/syncPolicy/automated/selfHeal\",\"value\":false}]'\n\n# 2. Delete Redis resources + remove finalizers\nkubectl delete redb -n redis-system redis-cluster-db --force --grace-period=0 &\nkubectl delete rec -n redis-system redis-cluster --force --grace-period=0 &\nkubectl patch redb -n redis-system redis-cluster-db --type=json \\\n  -p '[{\"op\":\"remove\",\"path\":\"/metadata/finalizers\"}]'\nkubectl patch rec redis-cluster -n redis-system --type=json \\\n  -p '[{\"op\":\"remove\",\"path\":\"/metadata/finalizers\"}]'\n\n# 3. Re-enable self-heal + trigger recovery\nkubectl -n argocd patch application redis-cluster --type=json \\\n  -p '[{\"op\":\"replace\",\"path\":\"/spec/syncPolicy/automated/selfHeal\",\"value\":true}]'\nkubectl -n redis-system create job --from=cronjob/redis-cluster-recovery-job manual-recovery\n```\n\n---\n\n## Reference Links\n\n- AS install guide: https://docs.uipath.com/automation-suite/latest/installation-guide/overview\n- AS upgrade guide: https://docs.uipath.com/automation-suite/latest/installation-guide/upgrading-automation-suite\n- Hardware requirements: https://docs.uipath.com/automation-suite/latest/installation-guide/hardware-and-software-requirements\n- Troubleshooting: https://docs.uipath.com/automation-suite/latest/installation-guide/troubleshooting-installation\n",
+  migration: "# Standalone Orchestrator \u2192 Automation Cloud Migration Guide\n\n## Scope\nMigration from self-hosted Standalone Orchestrator to UiPath Automation Cloud (SaaS).\nCovers data migration, Robot reconnection, license transfer, and cutover planning.\n\n---\n\n## Migration Decision Matrix\n\nBefore starting, answer these:\n\n| Question | If YES | If NO |\n|---|---|---|\n| Do you need to preserve historical job/queue data? | Plan data migration or export | Simple cutover possible |\n| Do you have custom Orchestrator configurations? | Document all settings first | Standard migration |\n| Are Robots on Windows VMs or VDI? | Standard Robot reconnection | May need cloud robot setup |\n| Are you using Standalone Identity (SSO/AD)? | Plan SSO reconfiguration for cloud | Standard migration |\n| Do you use credential stores (CyberArk/AKV)? | Read `cloud-onboarding.md` | Standard migration |\n| Current version < 2022.4? | Upgrade Standalone first, then migrate | Proceed with migration |\n\n---\n\n## Migration Checklist\n\n### Phase 1 \u2014 Pre-Migration Inventory (Source \u2014 Standalone)\n\nDocument everything from the existing Standalone Orchestrator:\n\n- [ ] **1.1** Export Tenants list (names, user counts, folder structure)\n- [ ] **1.2** Export/note all Packages (names, versions) from `Storage` folder or NuGet feed\n- [ ] **1.3** Export Assets list (names, types, folder assignments) \u2014 DO NOT export values for credentials\n- [ ] **1.4** Export Queues (names, SLA settings, folder assignments)\n- [ ] **1.5** Export all Process/Schedule configurations\n- [ ] **1.6** List all Machine Templates and connected Robot machines (hostnames)\n- [ ] **1.7** List all Users and their roles\n- [ ] **1.8** Note all Webhook configurations\n- [ ] **1.9** Note current license counts (Unattended, Attended, Studio, etc.)\n- [ ] **1.10** Screenshot all custom Settings (Orchestrator \u2192 Settings)\n- [ ] **1.11** Note SMTP configuration (host, port, auth) \u2014 needed for cloud setup\n- [ ] **1.12** Document any external integrations (Jira, ServiceNow, etc.)\n\n### Phase 2 \u2014 Prepare Automation Cloud Tenant\n\n- [ ] **2.1** Provision Automation Cloud tenant at `https://cloud.uipath.com`\n- [ ] **2.2** Activate licenses \u2014 confirm seat counts match or exceed Standalone\n- [ ] **2.3** Configure SSO/Identity (Azure AD, SAML) if used\n  - Navigate: Admin \u2192 Organization \u2192 Security \u2192 Authentication settings\n- [ ] **2.4** Recreate Folder structure in cloud Orchestrator\n- [ ] **2.5** Invite users and assign roles (or sync via Azure AD groups)\n- [ ] **2.6** Configure SMTP if email notifications required:\n  - Admin \u2192 Organization \u2192 Settings \u2192 Email\n\n### Phase 3 \u2014 Migrate Packages\n\n```powershell\n# Option A \u2014 Manual: Upload packages via Orchestrator UI\n# Orchestrator \u2192 Packages \u2192 Upload (.nupkg files from Storage folder)\n\n# Option B \u2014 API bulk upload (PowerShell)\n$orchestratorUrl = \"https://cloud.uipath.com/<org>/<tenant>/orchestrator_\"\n$headers = @{ \"Authorization\" = \"Bearer <token>\" }\n$packages = Get-ChildItem \"C:\\Backup\\Packages\" -Filter \"*.nupkg\"\nforeach ($pkg in $packages) {\n    $form = @{ file = Get-Item $pkg.FullName }\n    Invoke-RestMethod -Uri \"$orchestratorUrl/odata/Processes/UiPath.Server.Configuration.OData.UploadPackage\" `\n        -Method POST -Headers $headers -Form $form\n}\n```\n\n- [ ] **3.1** Upload all NuGet packages to cloud Orchestrator\n- [ ] **3.2** Verify package versions match source\n- [ ] **3.3** Recreate Process configurations linked to uploaded packages\n\n### Phase 4 \u2014 Migrate Assets & Queues\n\n> \u26a0\ufe0f **Credential assets**: Never export credential values \u2014 recreate them manually in cloud\n\n- [ ] **4.1** Recreate all text/integer/boolean assets in cloud (can use CSV import via API)\n- [ ] **4.2** Recreate credential assets \u2014 enter values fresh (do not copy from source)\n- [ ] **4.3** Recreate all Queues with same SLA settings\n- [ ] **4.4** Recreate Schedules / Triggers\n\n### Phase 5 \u2014 Reconnect Robots\n\nFor **each Robot machine**:\n\n- [ ] **5.1** Uninstall existing Robot from the machine (or update connection via UiPath Assistant)\n- [ ] **5.2** In UiPath Assistant \u2192 Settings \u2192 Orchestrator Settings:\n  - Connection URL: `https://cloud.uipath.com`\n  - Machine Key: copy from cloud Orchestrator \u2192 Machines \u2192 [Machine Template] \u2192 Machine Key\n- [ ] **5.3** In cloud Orchestrator, add the Machine Template and Robot account to the target folder\n- [ ] **5.4** Verify Robot shows as **Connected** in cloud Orchestrator \u2192 Monitoring \u2192 Unattended Sessions\n- [ ] **5.5** Run a test process on the reconnected Robot\n\n**Robot reconnection script (bulk \u2014 PowerShell on each Robot machine):**\n```powershell\n# Update Robot connection to cloud\n$cloudUrl = \"https://cloud.uipath.com\"\n$machineKey = \"<machine-key-from-cloud-orchestrator>\"\n\n# Via UiPath Robot CLI\n& \"C:\\Program Files\\UiPath\\Studio\\UiRobot.exe\" connect `\n    --url $cloudUrl `\n    --key $machineKey\n```\n\n### Phase 6 \u2014 Cutover\n\n- [ ] **6.1** Choose cutover window (low-activity period)\n- [ ] **6.2** Stop all schedules/triggers on Standalone Orchestrator\n- [ ] **6.3** Wait for all active jobs to complete (or gracefully stop)\n- [ ] **6.4** Enable schedules/triggers in cloud Orchestrator\n- [ ] **6.5** Redirect users to cloud Orchestrator URL\n- [ ] **6.6** Update any hardcoded Orchestrator URLs in Robot processes\n- [ ] **6.7** Run full smoke test (trigger each critical process once)\n- [ ] **6.8** Keep Standalone Orchestrator running in read-only mode for 2 weeks (rollback option)\n\n### Phase 7 \u2014 Post-Migration Validation\n\n- [ ] All Robots connected and showing **Online** in cloud\n- [ ] All Processes visible and executable\n- [ ] All Assets retrievable (test via Robot process)\n- [ ] Schedules running at expected times\n- [ ] Email notifications working\n- [ ] SSO login working for all users\n- [ ] Historical data accessible (if migrated)\n- [ ] License consumption within expected range\n\n---\n\n## License Transfer\n\n```\nStandalone \u2192 Cloud license transfer process:\n1. Generate deactivation key from Standalone Orchestrator (Settings \u2192 License \u2192 Deactivate)\n2. Use deactivation key to activate equivalent license in Automation Cloud\n   (Admin \u2192 Licenses \u2192 Activate)\n3. Confirm seat counts match\n```\n\n> **Note:** License transfer requires involvement of UiPath Account Team if the license type changes (e.g., Concurrent Robot \u2192 Named User).\n\n---\n\n## Rollback Plan\n\nIf migration fails during cutover:\n1. Stop all cloud Orchestrator jobs\n2. Re-enable IIS on Standalone Orchestrator server\n3. Reconnect Robots to Standalone (restore original Machine Key)\n4. Resume operations on Standalone\n5. Investigate and reattempt migration after fixing root cause\n\n---\n\n## Common Migration Errors\n\n| Error | Cause | Fix |\n|---|---|---|\n| Robot shows `Disconnected` after reconnect | Machine Template not in folder | Add Machine Template to target folder in cloud |\n| `An unattended robot has not been configured` | Domain credentials not set in cloud | Set `domain\\username` + password in Tenant \u2192 Manage Access \u2192 Unattended |\n| Asset not found errors in Robot | Asset not recreated in cloud | Recreate missing asset in cloud; verify folder assignment |\n| Package not found | Upload failed or wrong folder | Re-upload package; check folder assignment |\n| SSO login fails | Redirect URI mismatch | Update Reply URL in Azure AD app registration to include cloud URL |\n\n---\n\n## Reference Links\n\n- Cloud migration guide: https://docs.uipath.com/automation-cloud/latest/admin-guide/migration-guide\n- Robot connectivity: https://docs.uipath.com/robot/standalone/latest/user-guide/connecting-robot-to-orchestrator\n- License management: https://docs.uipath.com/automation-cloud/latest/admin-guide/managing-licenses\n",
+  onboarding: "# Automation Cloud \u2014 Multi-Tenant Onboarding & Credential Stores\n\n## Scope\nOnboarding new tenants/branches to Automation Cloud (including APAC multi-country patterns),\nand configuring credential stores (CyberArk CCP, Azure Key Vault, HashiCorp Vault, BeyondTrust).\n\n---\n\n## Multi-Tenant Onboarding Checklist\n\n### New Tenant Setup\n\n- [ ] **1.1** Admin \u2192 Tenants \u2192 Add Tenant\n  - Name: use consistent naming convention (e.g., `APAC_Singapore`, `EMEA_London`)\n  - Region: select closest Azure region to user base\n- [ ] **1.2** Assign licenses to new tenant:\n  - Admin \u2192 Licenses \u2192 Allocate to Tenant\n  - Allocate: Unattended Robot, Attended Robot, Studio seats as required\n- [ ] **1.3** Configure SSO for tenant (if using Azure AD per-country):\n  - Admin \u2192 Tenant \u2192 Security \u2192 External Identity Providers\n  - Add Azure AD with correct Tenant ID for that country's AD\n- [ ] **1.4** Create Folder structure:\n  - Follow naming convention: `<Country>/<BU>/<Environment>`\n  - e.g., `SG/Finance/Production`\n- [ ] **1.5** Create Machine Templates for the tenant's Robot machines\n- [ ] **1.6** Add Robot user accounts (Directory or Local)\n- [ ] **1.7** Configure credential store (see below)\n- [ ] **1.8** Upload packages / create processes\n- [ ] **1.9** Test end-to-end Robot connectivity and job execution\n\n### Tenant Isolation Considerations\n\n| Setting | Recommendation |\n|---|---|\n| Folder permissions | Scope strictly to tenant's own folders |\n| Credential stores | Configure per-tenant (not shared across tenants) |\n| Packages | Use separate feeds per tenant or folder-level access control |\n| SSO | Per-country Azure AD tenants if different domains |\n| Robots | Machine templates scoped to tenant folders |\n\n---\n\n## Credential Store Setup Guides\n\n### Option 1 \u2014 Azure Key Vault (Most Common for Cloud)\n\n**Required Azure permissions for the SPN/App Registration:**\n\n| Mode | Required Permissions |\n|---|---|\n| Read-Only | `Get`, `List` |\n| Normal (R/W) | `Get`, `List`, `Set`, `Delete` |\n\n**Azure Setup:**\n```\n1. Azure Portal \u2192 App Registrations \u2192 New Registration\n2. Note: Application (Client) ID, Directory (Tenant) ID\n3. Create Client Secret (Certificates & Secrets \u2192 New client secret)\n   \u2192 Note the secret value immediately (only shown once)\n4. Azure Portal \u2192 Key Vaults \u2192 [Your Vault] \u2192 Access Control (IAM)\n   \u2192 Add Role Assignment\n   \u2192 Role: \"Key Vault Secrets Officer\" (for Normal mode)\n      OR \"Key Vault Secrets User\" (for Read-Only mode)\n   \u2192 Member: select your App Registration\n5. Set Redirect URI (if needed): https://cloud.uipath.com/provisioning_/callback\n```\n\n**Orchestrator Setup:**\n```\n1. Orchestrator \u2192 Tenant \u2192 Credential Stores \u2192 Add Store\n2. Type: Azure Key Vault\n3. Key Vault URI: https://<vault-name>.vault.azure.net\n4. Client ID: <Application ID from Azure>\n5. Client Secret: <Secret value>\n6. Tenant ID: <Directory ID from Azure>\n7. Mode: Normal (Read/Write) OR Read-Only\n8. Save \u2192 Test Connection must succeed\n```\n\n**Validate SPN connectivity (PowerShell):**\n```powershell\n$tenantId = \"<azure-tenant-id>\"\n$clientId = \"<app-registration-client-id>\"\n$clientSecret = \"<client-secret>\"\n$vaultName = \"<key-vault-name>\"\n\n$tokenResponse = Invoke-WebRequest -Method Post `\n  -Uri \"https://login.microsoftonline.com/$tenantId/oauth2/token\" `\n  -ContentType \"application/x-www-form-urlencoded\" `\n  -Body \"grant_type=client_credentials&client_id=$clientId&client_secret=$clientSecret&resource=https://vault.azure.net\"\n\n$token = ($tokenResponse.Content | ConvertFrom-Json).access_token\nWrite-Host \"Token obtained: $($token.Substring(0,20))...\"\n\n# Test listing secrets\n$secrets = Invoke-WebRequest -Method Get `\n  -Uri \"https://$vaultName.vault.azure.net/secrets?api-version=7.3\" `\n  -Headers @{ \"Authorization\" = \"Bearer $token\" }\nWrite-Host \"Secrets accessible: $(($secrets.Content | ConvertFrom-Json).value.Count)\"\n```\n\n---\n\n### Option 2 \u2014 CyberArk CCP (Credential Provider)\n\n**Architecture:**\n```\nRobot \u2192 Orchestrator \u2192 CyberArk CCP REST API \u2192 CyberArk Vault\n```\n\n**Prerequisites:**\n- CyberArk CCP installed and accessible from Orchestrator server/pods\n- CyberArk Application ID created for UiPath\n- Safes/Accounts configured in CyberArk with correct permissions for the UiPath App ID\n- SSL certificate trust established between Orchestrator and CyberArk CCP\n\n**Orchestrator Setup (Automation Cloud):**\n```\n1. Orchestrator \u2192 Tenant \u2192 Credential Stores \u2192 Add Store\n2. Type: CyberArk CCP\n3. Application ID: <CyberArk App ID for UiPath>\n4. Safe: <CyberArk Safe name>\n5. CCP URL: https://<cyberark-ccp-server>/AIMWebService\n6. Client Certificate: (optional, for mutual TLS auth)\n7. Test Connection\n```\n\n**Common CyberArk Errors:**\n\n| Error | Cause | Fix |\n|---|---|---|\n| `APPAP004E` | App ID not found or not authorized | Verify Application ID in CyberArk; check IP restrictions |\n| `APPAP007E` | Safe not found or no access | Grant UiPath App ID access to Safe in CyberArk |\n| `APPAP008E` | Account not found in Safe | Verify account name/object name matches exactly |\n| `SSL certificate error` | CyberArk cert not trusted | Import CyberArk CCP cert into Orchestrator server trust store |\n| Connection timeout | CyberArk CCP not reachable | Check firewall/network path from Orchestrator to CyberArk CCP |\n\n---\n\n### Option 3 \u2014 HashiCorp Vault\n\n**Prerequisites:**\n- HashiCorp Vault server accessible from Orchestrator\n- KV secrets engine (v2) enabled\n- AppRole or Token auth configured for UiPath\n\n**Orchestrator Setup:**\n```\n1. Orchestrator \u2192 Tenant \u2192 Credential Stores \u2192 Add Store\n2. Type: HashiCorp Vault\n3. Vault URL: https://<vault-server>:8200\n4. Authentication Method: AppRole or Token\n5. Role ID + Secret ID (for AppRole)\n6. Secrets Engine Path: secret (or custom path)\n7. Test Connection\n```\n\n---\n\n### Option 4 \u2014 BeyondTrust Password Safe\n\n**Orchestrator Setup:**\n```\n1. Orchestrator \u2192 Tenant \u2192 Credential Stores \u2192 Add Store\n2. Type: BeyondTrust\n3. API URL: https://<beyondtrust-server>/BeyondTrust/api/public/v3\n4. API Key: <generated from BeyondTrust admin>\n5. System Name: <managed system in BeyondTrust>\n6. Test Connection\n```\n\n---\n\n## Using Credential Store Assets\n\nOnce a credential store is configured:\n\n```\nOrchestrator \u2192 Folder \u2192 Assets \u2192 Add Asset\nType: Credential\nCredential Store: [select your configured store]\nExternal Name: <name of secret in the vault exactly as stored>\n```\n\n> **Important:** The External Name must **exactly match** the secret name in the vault\n> (case-sensitive for Azure Key Vault; case-insensitive for CyberArk).\n\nIn Robot process (Studio):\n```\nGet Asset activity \u2192 Asset Name: \"MyCredentialAsset\"\n\u2192 Returns username + password from the vault at runtime\n\u2192 Credentials are never cached locally on the Robot machine\n```\n\n---\n\n## Dedicated Automation Cloud (Private Cloud) \u2014 Migration Notes\n\nFor customers migrating to Automation Cloud **Dedicated** (private infrastructure):\n\n- [ ] Requires Azure Private Link configuration \u2014 coordinate with UiPath Cloud team\n- [ ] DNS private zones must be configured for `*.uipath.com` endpoints\n- [ ] Azure Private Endpoint approval required from UiPath side\n- [ ] Multi-tenant \u2192 Dedicated migration: data migration performed by UiPath Cloud team (submit SR)\n- [ ] Robot agents require updated connection strings post-migration\n\n**Sequencing for Azure Private Link:**\n```\n1. Customer provisions Private Endpoint in their Azure subscription\n2. UiPath Cloud team approves the Private Link connection\n3. Customer configures Private DNS Zone: privatelink.uipath.com\n4. Customer tests connectivity: nslookup cloud.uipath.com \u2192 should resolve to private IP\n5. Update Robot connections to use private endpoint URL\n```\n\n---\n\n## Troubleshooting Credential Store Issues\n\n```powershell\n# Quick diagnostic: test credential retrieval from Robot machine\n# Run in Studio \u2192 Debug mode with Get Asset activity\n# Check Robot logs for credential fetch errors:\nGet-Content \"$env:LOCALAPPDATA\\UiPath\\Logs\\*\" | Select-String \"credential|asset|vault|CyberArk|KeyVault\" | Select-Object -Last 50\n```\n\n**Common cross-credential-store errors:**\n\n| Error | Likely Cause |\n|---|---|\n| `Credential store connection failed` | Network/firewall blocking Orchestrator \u2192 Vault |\n| `Invalid credentials` | Client Secret expired (AKV) or token expired (HCV) |\n| `External name not found` | Secret name mismatch \u2014 check exact casing |\n| `Permission denied` | SPN/App lacks `Set` permission (Normal mode) or Safe access (CyberArk) |\n| Works in Read-Only, fails in Normal | SPN only has `Get`+`List` \u2014 needs `Set` permission |\n\n---\n\n## Reference Links\n\n- AKV integration: https://docs.uipath.com/orchestrator/automation-cloud/latest/user-guide/integrating-credential-storesazure-key-vault-integration\n- CyberArk integration: https://docs.uipath.com/orchestrator/automation-cloud/latest/user-guide/cyberark-ccp\n- HashiCorp Vault: https://docs.uipath.com/orchestrator/automation-cloud/latest/user-guide/hashicorp-vault\n- Multi-tenancy: https://docs.uipath.com/automation-cloud/latest/admin-guide/about-tenants\n"
+};
+
+const ALL_VERSIONS = ["2021.10","2022.4","2022.10","2023.4","2023.10","2024.10","2025.10"];
+const VERSION_INFO = {
+  "2021.10": {type:"LTS", status:"End of Life"},
+  "2022.4":  {type:"LTS", status:"Extended Support"},
+  "2022.10": {type:"Feature", status:"End of Life"},
+  "2023.4":  {type:"LTS", status:"Active"},
+  "2023.10": {type:"LTS", status:"Active"},
+  "2024.10": {type:"LTS", status:"Active"},
+  "2025.10": {type:"Feature", status:"Active"}
+};
+const LTS_ORDER = ["2021.10","2022.4","2023.4","2023.10","2024.10"];
+
+const ERRORS = [
+  {error:"Database creation failed", cause:"SQL account lacks dbcreator", fix:"Grant dbcreator to the SQL login at server level.", source:"Standalone Install"},
+  {error:"HTTP Error 500.37", cause:"ASP.NET Core startup timeout, or .NET version mismatch after upgrade", fix:"Increase startupTimeLimit in web.config to 300, or install the correct .NET Hosting Bundle then IISRESET.", source:"Standalone Install/Upgrade"},
+  {error:"The MetadataAddress must use HTTPS", cause:"IIS HTTPS binding missing/cert mismatch, or SSL thumbprint reset during upgrade or URL change", fix:"Rebind the correct SSL cert in IIS and update the thumbprint in Identity\\appsettings.Production.json to match certlm.msc.", source:"Standalone Install/Upgrade, Cross-Scenario"},
+  {error:"Unable to connect to SQL", cause:"Wrong connection string or firewall", fix:"Verify SQL port 1433 is open; test with SSMS from the install server.", source:"Standalone Install"},
+  {error:"Install hangs at IIS config", cause:"IIS not fully installed", fix:"Run the PowerShell IIS install script, restart, then rerun the MSI.", source:"Standalone Install"},
+  {error:"Invalid issuer login error", cause:"PublicUrl changed or identity config mismatch", fix:"Run the Platform Configuration Tool with the correct URL.", source:"Standalone Upgrade"},
+  {error:"DB migration timeout", cause:"Large DB or slow SQL", fix:"Increase the SQL command timeout, or run the migration manually via script.", source:"Standalone Upgrade"},
+  {error:"Robots show Disconnected post-upgrade", cause:"Machine key changed or URL mismatch", fix:"Re-register robots with the new machine key from Orchestrator.", source:"Standalone Upgrade"},
+  {error:"Object reference not set on Webhooks", cause:"Webhooks config not updated after upgrade", fix:"Restore the Webhooks appsettings.Production.json from backup.", source:"Standalone Upgrade"},
+  {error:"Pod OOMKilled", cause:"Memory limit too low", fix:"Increase memory limits in cluster_config.json and re-apply.", source:"Automation Suite"},
+  {error:"ArgoCD sync loop", cause:"Self-heal fighting a manual patch", fix:"Disable self-heal before patching, re-enable after.", source:"Automation Suite"},
+  {error:"redisenterpriseclusters not found", cause:"Redis CRD deleted or missing", fix:"Force delete the REC, remove finalizers, re-enable self-heal, and trigger the recovery job.", source:"Automation Suite"},
+  {error:"Persistent Volume stuck Pending", cause:"StorageClass not set as default", fix:"kubectl patch storageclass <name> to set is-default-class=true.", source:"Automation Suite"},
+  {error:"Image pull ErrImagePull", cause:"Registry credentials expired", fix:"Update registry credentials in cluster_config.json and re-apply.", source:"Automation Suite"},
+  {error:"Robot shows Disconnected after reconnect", cause:"Machine Template not added to the target folder", fix:"Add the Machine Template to the target folder in cloud Orchestrator.", source:"Cloud Migration"},
+  {error:"An unattended robot has not been configured", cause:"Domain credentials not set in cloud", fix:"Set domain\\username + password under Tenant → Manage Access → Unattended.", source:"Cloud Migration"},
+  {error:"Asset not found errors in Robot", cause:"Asset not recreated in cloud", fix:"Recreate the missing asset in cloud and verify folder assignment.", source:"Cloud Migration"},
+  {error:"Package not found", cause:"Upload failed or wrong folder", fix:"Re-upload the package and check folder assignment.", source:"Cloud Migration"},
+  {error:"SSO login fails after migration", cause:"Redirect URI mismatch", fix:"Update the Reply URL in the Azure AD app registration to include the cloud URL.", source:"Cloud Migration"},
+  {error:"APPAP004E", cause:"CyberArk App ID not found or not authorized", fix:"Verify the Application ID in CyberArk; check IP restrictions.", source:"Credential Store — CyberArk"},
+  {error:"APPAP007E", cause:"CyberArk Safe not found or no access", fix:"Grant the UiPath App ID access to the Safe in CyberArk.", source:"Credential Store — CyberArk"},
+  {error:"APPAP008E", cause:"Account not found in Safe", fix:"Verify the account/object name matches exactly.", source:"Credential Store — CyberArk"},
+  {error:"Credential store connection failed", cause:"Network/firewall blocking Orchestrator to Vault", fix:"Check the firewall/network path from Orchestrator to the vault.", source:"Credential Store"},
+  {error:"Invalid credentials for credential store", cause:"Client Secret expired (Azure Key Vault) or token expired (HashiCorp Vault)", fix:"Rotate the client secret/token in the vault and update the credential store config.", source:"Credential Store"},
+  {error:"External name not found", cause:"Secret name mismatch", fix:"Check exact casing — case-sensitive for Azure Key Vault, case-insensitive for CyberArk.", source:"Credential Store"},
+  {error:"Permission denied on credential store", cause:"SPN/App lacks Set permission (Normal mode) or Safe access (CyberArk)", fix:"Grant Set permission (AKV) or Safe access (CyberArk) to the service principal/app.", source:"Credential Store"},
+  {error:"Auth or HTTPS error right after a URL or hostname change", cause:"PublicUrl in SQL or the SSL thumbprint wasn't updated after the URL change", fix:"Run: UPDATE dbo.Settings SET Value='https://new-url' WHERE Name='PublicUrl'. Then verify the SSL thumbprint in Identity\\appsettings.Production.json matches certlm.msc.", source:"Cross-Scenario Gotcha"},
+  {error:"IIS Application Pools not starting", cause:"Pools running under different service accounts or Load User Profile disabled", fix:"All UiPath pools must run under the same service account with Load User Profile = True.", source:"Cross-Scenario Gotcha"}
+];
+
+const GOTCHAS = [
+  "SQL permissions: install account needs dbcreator + sysadmin (or at minimum db_owner on an existing DB).",
+  "SSL certificates: must be valid, trusted, and bound in IIS with a matching thumbprint in appsettings.Production.json.",
+  "PublicUrl in SQL: must be updated after any URL/hostname change.",
+  "Platform Configuration Tool: always prefer this over manual config edits.",
+  "IIS Application Pools: all UiPath pools must run under the same service account with Load User Profile = True.",
+  "Firewall ports: 443 (HTTPS), 1433 (SQL), 6379 (Redis — AS only), 9000/9001 (Object Store — AS only).",
+  "License: confirm license validity and seat counts before starting any upgrade or migration."
+];
+
+const ESCALATE = [
+  "SQL database corruption is suspected",
+  "Helm chart deployment fails after 3 retries with the same error",
+  "ArgoCD sync loops without resolution",
+  "Identity Server certificate errors persist after the correct thumbprint is confirmed",
+  "Cloud migration results in data loss or tenant inaccessibility"
+];
+
+/* ---------- markdown helpers ---------- */
+function escapeHtml(s) { return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+function renderInline(s) {
+  s = s.replace(/`([^`]+)`/g, (m, c) => '<code>' + c + '</code>');
+  s = s.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+  s = s.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+  return s;
+}
+
+function iconForSection(title) {
+  const t = title.toLowerCase();
+  if (t.includes('pre-flight') || t.includes('pre-install') || t.includes('pre-upgrade') || t.includes('decision matrix')) return '🧭';
+  if (t.includes('validation')) return '✅';
+  if (t.includes('error')) return '🐛';
+  if (t.includes('reference link')) return '🔗';
+  if (t.includes('rollback')) return '↩️';
+  if (t.includes('license')) return '🔑';
+  if (t.includes('troubleshoot')) return '🛠️';
+  if (t.includes('credential')) return '🔐';
+  if (t.includes('emergency')) return '🚨';
+  if (t.includes('deployment profile')) return '⚙️';
+  if (t.includes('sql maintenance')) return '🗄️';
+  if (t.includes('checklist')) return '📋';
+  return '📄';
+}
+
+// Renders one markdown "line body" (used inside a section) - no H1/H2 splitting, just inline structure.
+function renderBody(md) {
+  const lines = escapeHtml(md).split('\n');
+  let html = '', inCode = false, codeBuf = [], listType = null, tableBuf = [];
+  function flushList() { if (listType) { html += '</' + (listType === 'ul-chk' ? 'ul' : listType) + '>'; listType = null; } }
+  function flushTable() {
+    if (tableBuf.length) {
+      const rows = tableBuf.filter(r => !/^\s*\|?\s*-{2,}/.test(r));
+      html += '<table>';
+      rows.forEach((row, i) => {
+        const cells = row.replace(/^\|/, '').replace(/\|$/, '').split('|').map(c => c.trim());
+        const tag = i === 0 ? 'th' : 'td';
+        html += '<tr>' + cells.map(c => '<' + tag + '>' + renderInline(c) + '</' + tag + '>').join('') + '</tr>';
+      });
+      html += '</table>'; tableBuf = [];
+    }
+  }
+  for (let line of lines) {
+    if (/^```/.test(line.trim())) {
+      if (inCode) { html += '<pre><code>' + codeBuf.join('\n') + '</code></pre>'; codeBuf = []; inCode = false; }
+      else { flushList(); flushTable(); inCode = true; }
+      continue;
+    }
+    if (inCode) { codeBuf.push(line); continue; }
+    if (/^\s*\|.*\|\s*$/.test(line)) { flushList(); tableBuf.push(line.trim()); continue; }
+    else if (tableBuf.length) { flushTable(); }
+
+    const chk = line.match(/^\s*[-*]\s+\[([ xX])\]\s+(.*)$/);
+    if (chk) {
+      if (listType !== 'ul-chk') { flushList(); html += '<ul class="chklist">'; listType = 'ul-chk'; }
+      const checked = chk[1].toLowerCase() === 'x';
+      html += '<li class="chk"><label' + (checked ? ' class="done"' : '') + '><input type="checkbox"' + (checked ? ' checked' : '') + '><span>' + renderInline(chk[2]) + '</span></label></li>';
+      continue;
+    }
+    if (/^\s*#{3}\s+/.test(line)) {
+      flushList();
+      html += '<h3>' + renderInline(line.replace(/^\s*#{3}\s+/, '')) + '</h3>';
+      continue;
+    }
+    if (/^\s*[-*]\s+/.test(line)) {
+      if (listType !== 'ul') { flushList(); html += '<ul>'; listType = 'ul'; }
+      html += '<li>' + renderInline(line.replace(/^\s*[-*]\s+/, '')) + '</li>';
+      continue;
+    }
+    if (/^\s*\d+\.\s+/.test(line)) {
+      if (listType !== 'ol') { flushList(); html += '<ol>'; listType = 'ol'; }
+      html += '<li>' + renderInline(line.replace(/^\s*\d+\.\s+/, '')) + '</li>';
+      continue;
+    }
+    flushList();
+    if (line.trim() === '') { /* skip */ }
+    else if (/^\s*---+\s*$/.test(line)) { /* skip hr, sections already separated */ }
+    else if (/^\s*>\s*/.test(line)) { html += '<p><em>' + renderInline(line.replace(/^\s*>\s*/, '')) + '</em></p>'; }
+    else { html += '<p>' + renderInline(line) + '</p>'; }
+  }
+  flushList(); flushTable();
+  return html;
+}
+
+// Splits a full reference markdown file into { title, sections: [{title, bodyHtml, checkboxCount}] }
+function parseFile(md) {
+  const lines = md.split('\n');
+  let title = '';
+  let sections = [];
+  let cur = null;
+  let buf = [];
+  function pushCur() {
+    if (cur) {
+      const bodyHtml = renderBody(buf.join('\n'));
+      const chkCount = (buf.join('\n').match(/^\s*[-*]\s+\[[ xX]\]/gm) || []).length;
+      sections.push({ title: cur, bodyHtml, chkCount });
+    }
+    buf = [];
+  }
+  for (const line of lines) {
+    const h1 = line.match(/^#\s+(.*)$/);
+    const h2 = line.match(/^##\s+(.*)$/);
+    if (h1 && !title) { title = h1[1]; continue; }
+    if (h2) { pushCur(); cur = h2[1]; continue; }
+    if (cur !== null) buf.push(line);
+  }
+  pushCur();
+  return { title, sections };
+}
+
+function renderFileBlock(md, opts) {
+  const parsed = parseFile(md);
+  opts = opts || {};
+  let out = '';
+  if (opts.showFileTitle) out += '<h3 class="file-title">' + escapeHtml(parsed.title) + '</h3>';
+  parsed.sections.forEach((sec, i) => {
+    const icon = iconForSection(sec.title);
+    const badge = sec.chkCount ? '<span class="badge" data-total="' + sec.chkCount + '">0/' + sec.chkCount + '</span>' : '';
+    const openAttr = i < 2 ? ' open' : '';
+    out += '<details class="section"' + openAttr + '><summary>' + icon + ' ' + escapeHtml(sec.title) + badge + '<span class="chevron">▶</span></summary><div class="section-body">' + sec.bodyHtml + '</div></details>';
+  });
+  return out;
+}
+
+/* ---------- checkbox badge delegation ---------- */
+document.getElementById('main').addEventListener('change', (e) => {
+  if (e.target.matches('input[type=checkbox]')) {
+    const label = e.target.closest('label');
+    label.classList.toggle('done', e.target.checked);
+    const details = e.target.closest('details.section');
+    if (details) {
+      const badge = details.querySelector('summary .badge');
+      if (badge) {
+        const total = parseInt(badge.dataset.total, 10);
+        const checked = details.querySelectorAll('input[type=checkbox]:checked').length;
+        badge.textContent = checked + '/' + total;
+      }
+    }
+  }
+});
+
+/* ---------- icons for options ---------- */
+function iconForLabel(label) {
+  const l = label.toLowerCase();
+  if (l.includes('fresh install')) return '🖥️';
+  if (l.includes('upgrade')) return '⬆️';
+  if (l.includes('migrate')) return '☁️';
+  if (l.includes('onboard')) return '🔐';
+  if (l.includes('broken') || l.includes('troubleshoot')) return '🛠️';
+  if (l.includes('standalone')) return '🖥️';
+  if (l.includes('automation suite')) return '☸️';
+  if (l.includes('aks') || l.includes('eks') || l.includes('gke') || l.includes('openshift') || l.includes('on-prem')) return '☸️';
+  if (l.includes('single-node')) return '🔹';
+  if (l.includes('multi-node') || l.includes('ha')) return '🔷';
+  if (l.includes('in-place')) return '🔁';
+  if (l.includes('side-by-side')) return '🆕';
+  if (l.includes('yes')) return '✅';
+  if (l.includes('no')) return '➖';
+  if (l.includes('azure key vault')) return '🔑';
+  if (l.includes('cyberark')) return '🛡️';
+  if (l.includes('hashicorp')) return '🗝️';
+  if (l.includes('beyondtrust')) return '🔒';
+  if (l.includes('tenant')) return '🏢';
+  if (l.includes('credential store only')) return '🔐';
+  if (l.includes('both')) return '🧩';
+  return '▪️';
+}
+
+/* ---------- state ---------- */
+let answers = {};
+let steps = [];       // [{nodeId}]
+let progressLog = []; // [{q, a}]
+
+const mainInner = document.getElementById('mainInner');
+const progressListEl = document.getElementById('progressList');
+
+function renderSidebar() {
+  if (!progressLog.length) {
+    progressListEl.innerHTML = '<li class="empty">Your steps will appear here</li>';
+    return;
+  }
+  progressListEl.innerHTML = progressLog.map((p, i) => {
+    const isLast = i === progressLog.length - 1;
+    return '<li class="' + (isLast ? 'current' : '') + '"><span class="tick">' + (isLast ? '●' : '✓') + '</span>' +
+      '<span class="txt"><span class="q">' + escapeHtml(p.q) + '</span><span class="a">' + escapeHtml(p.a) + '</span></span></li>';
+  }).join('');
+}
+
+function versionSelectHtml(id) {
+  let opts = ALL_VERSIONS.map(v => '<option value="' + v + '">' + v + ' (' + VERSION_INFO[v].type + ', ' + VERSION_INFO[v].status + ')</option>').join('');
+  return '<select id="' + id + '"><option value="">Select a version&hellip;</option>' + opts + '</select>';
+}
+
+function ltsSkipWarning(current, target) {
+  const ci = LTS_ORDER.indexOf(current), ti = LTS_ORDER.indexOf(target);
+  if (ci === -1 || ti === -1 || ti <= ci) return null;
+  if (ti - ci > 1) {
+    const skipped = LTS_ORDER.slice(ci + 1, ti);
+    return 'This jump skips LTS version(s): <strong>' + skipped.join(', ') + '</strong>. UiPath requires sequential LTS upgrades &mdash; plan intermediate hops through ' + skipped.join(' &rarr; ') + ' before reaching ' + target + '.';
+  }
+  return null;
+}
+
+function backLinkHtml() {
+  return steps.length > 1 ? '<button class="back-link" id="backBtn">&larr; back</button>' : '';
+}
+function goBack() {
+  steps.pop();
+  progressLog.pop();
+  const prev = steps.pop();
+  renderSidebar();
+  showNode(prev.nodeId);
+}
+
+function scopeChips(bits) {
+  return '<div class="chips">' + bits.filter(Boolean).map(b => '<span class="chip">' + escapeHtml(b) + '</span>').join('') + '</div>';
+}
+
+function actionBar() {
+  return '<div class="action-bar">' +
+    '<button class="action-btn primary" id="copyBtn">📋 Copy checklist</button>' +
+    '<button class="action-btn" id="printBtn">🖨️ Print</button>' +
+    '<button class="action-btn" id="newCaseBtn">⟲ New case</button>' +
+    '</div>';
+}
+function wireActionBar(resultEl) {
+  document.getElementById('copyBtn').addEventListener('click', () => {
+    navigator.clipboard.writeText(resultEl.innerText).then(() => {
+      const b = document.getElementById('copyBtn');
+      const old = b.textContent; b.textContent = '✅ Copied'; setTimeout(() => b.textContent = old, 1500);
+    });
+  });
+  document.getElementById('printBtn').addEventListener('click', () => window.print());
+  document.getElementById('newCaseBtn').addEventListener('click', restart);
+}
+
+function showNode(nodeId) {
+  steps.push({ nodeId });
+  const node = TREE[nodeId];
+
+  if (node.terminal) {
+    mainInner.innerHTML = node.render(answers);
+    const resultEl = mainInner.querySelector('.result-card');
+    wireActionBar(resultEl);
+    renderSidebar();
+    return;
+  }
+
+  let controls = '';
+  if (node.type === 'choice') {
+    const single = node.options.length <= 2 || node.wide;
+    controls = '<div class="opt-grid' + (single ? ' single' : '') + '">' + node.options.map((opt, i) =>
+      '<div class="opt-card" data-i="' + i + '"><span class="ic">' + iconForLabel(opt.label) + '</span>' + escapeHtml(opt.label) + '</div>'
+    ).join('') + '</div>';
+  } else if (node.type === 'select') {
+    controls = '<div class="field-row">' + versionSelectHtml('sel_' + nodeId) + '<button class="go-btn" id="go_' + nodeId + '">Continue →</button></div>';
+  } else if (node.type === 'text') {
+    controls = '<div class="field-row"><textarea id="txt_' + nodeId + '" placeholder="' + (node.placeholder || '') + '"></textarea><button class="go-btn" id="go_' + nodeId + '">Search →</button></div>';
+  }
+
+  mainInner.innerHTML = '<div class="question-card"><div class="kicker">Step ' + steps.length + '</div><h2>' + node.question + '</h2>' + controls + backLinkHtml() + '</div>';
+
+  if (node.type === 'choice') {
+    node.options.forEach((opt, i) => {
+      mainInner.querySelector('[data-i="' + i + '"]').addEventListener('click', () => {
+        answers[node.answerKey] = opt.value !== undefined ? opt.value : opt.label;
+        progressLog.push({ q: node.shortQ || node.question, a: opt.label });
+        renderSidebar();
+        advance(node, opt.next);
+      });
+    });
+  } else if (node.type === 'select') {
+    document.getElementById('go_' + nodeId).addEventListener('click', () => {
+      const val = document.getElementById('sel_' + nodeId).value;
+      if (!val) return;
+      answers[node.answerKey] = val;
+      progressLog.push({ q: node.shortQ || node.question, a: val });
+      renderSidebar();
+      advance(node, node.next);
+    });
+  } else if (node.type === 'text') {
+    document.getElementById('go_' + nodeId).addEventListener('click', () => {
+      const val = document.getElementById('txt_' + nodeId).value.trim();
+      if (!val) return;
+      answers[node.answerKey] = val;
+      progressLog.push({ q: node.shortQ || node.question, a: val });
+      renderSidebar();
+      advance(node, node.next);
+    });
+  }
+  const backBtn = document.getElementById('backBtn');
+  if (backBtn) backBtn.addEventListener('click', goBack);
+}
+
+function advance(node, next) {
+  const nextId = typeof next === 'function' ? next(answers) : next;
+  showNode(nextId);
+}
+
+function restart() {
+  answers = {}; steps = []; progressLog = [];
+  renderSidebar();
+  showNode('start');
+}
+document.getElementById('restartBtn').addEventListener('click', restart);
+
+/* ---------- decision tree ---------- */
+const TREE = {
+  start: {
+    question: "What do you need help with?", shortQ: "Intent", type: 'choice', answerKey: 'intent', wide: true,
+    options: [
+      { label: "Fresh install", next: 'install_type' },
+      { label: "Upgrade an existing install", next: 'upgrade_type' },
+      { label: "Migrate Standalone to Automation Cloud", next: 'migration_current' },
+      { label: "Onboard a tenant / set up a credential store", next: 'onboard_type' },
+      { label: "Something is broken (troubleshoot)", next: 'trouble_error' }
+    ]
+  },
+  install_type: {
+    question: "Standalone (Windows/IIS) or Automation Suite (Kubernetes/OpenShift)?", shortQ: "Deployment type", type: 'choice', answerKey: 'deployType',
+    options: [ { label: "Standalone", next: 'install_standalone_version' }, { label: "Automation Suite", next: 'install_as_platform' } ]
+  },
+  install_standalone_version: { question: "Target version?", shortQ: "Target version", type: 'select', answerKey: 'targetVersion', next: 'install_standalone_topology' },
+  install_standalone_topology: {
+    question: "Single-node or multi-node/HA?", shortQ: "Topology", type: 'choice', answerKey: 'topology',
+    options: [ { label: "Single-node", next: 'TERM_STANDALONE_INSTALL' }, { label: "Multi-node / HA", next: 'TERM_STANDALONE_INSTALL' } ]
+  },
+  install_as_platform: {
+    question: "Which platform?", shortQ: "Platform", type: 'choice', answerKey: 'platform', wide: true,
+    options: [
+      { label: "AKS (Azure)", next: 'install_as_profile' }, { label: "EKS (AWS)", next: 'install_as_profile' },
+      { label: "GKE (Google)", next: 'install_as_profile' }, { label: "OpenShift", next: 'install_as_profile' },
+      { label: "On-prem Kubernetes", next: 'install_as_profile' }
+    ]
+  },
+  install_as_profile: {
+    question: "Deployment profile?", shortQ: "Profile", type: 'choice', answerKey: 'profile', wide: true,
+    options: [
+      { label: "single_node_serverless (dev/test)", next: 'install_as_airgap' },
+      { label: "multi_node_serverless (small prod)", next: 'install_as_airgap' },
+      { label: "ha_prod (production HA)", next: 'install_as_airgap' },
+      { label: "custom", next: 'install_as_airgap' }
+    ]
+  },
+  install_as_airgap: {
+    question: "Air-gapped (no outbound internet)?", shortQ: "Air-gapped", type: 'choice', answerKey: 'airgap',
+    options: [ { label: "Yes, air-gapped", next: 'TERM_AS_INSTALL' }, { label: "No, has internet access", next: 'TERM_AS_INSTALL' } ]
+  },
+  upgrade_type: {
+    question: "Standalone or Automation Suite?", shortQ: "Deployment type", type: 'choice', answerKey: 'deployType',
+    options: [ { label: "Standalone", next: 'upgrade_standalone_current' }, { label: "Automation Suite", next: 'TERM_AS_UPGRADE' } ]
+  },
+  upgrade_standalone_current: { question: "Current version (exact)?", shortQ: "Current version", type: 'select', answerKey: 'currentVersion', next: 'upgrade_standalone_target' },
+  upgrade_standalone_target: { question: "Target version?", shortQ: "Target version", type: 'select', answerKey: 'targetVersion', next: 'upgrade_standalone_mode' },
+  upgrade_standalone_mode: {
+    question: "In-place (same server) or side-by-side (new server)?", shortQ: "Upgrade mode", type: 'choice', answerKey: 'mode',
+    options: [ { label: "In-place", next: 'TERM_STANDALONE_UPGRADE' }, { label: "Side-by-side", next: 'TERM_STANDALONE_UPGRADE' } ]
+  },
+  migration_current: { question: "Current Standalone version?", shortQ: "Current version", type: 'select', answerKey: 'currentVersion', next: 'migration_data' },
+  migration_data: {
+    question: "Do you need to preserve historical job/queue data?", shortQ: "Preserve data", type: 'choice', answerKey: 'preserveData',
+    options: [ { label: "Yes", next: 'migration_configs' }, { label: "No", next: 'migration_configs' } ]
+  },
+  migration_configs: {
+    question: "Custom Orchestrator configurations in use?", shortQ: "Custom configs", type: 'choice', answerKey: 'customConfigs',
+    options: [ { label: "Yes", next: 'migration_sso' }, { label: "No", next: 'migration_sso' } ]
+  },
+  migration_sso: {
+    question: "Using Standalone Identity / SSO (AD, SAML)?", shortQ: "SSO in use", type: 'choice', answerKey: 'sso',
+    options: [ { label: "Yes", next: 'migration_creds' }, { label: "No", next: 'migration_creds' } ]
+  },
+  migration_creds: {
+    question: "Using credential stores (CyberArk, Azure Key Vault, etc.)?", shortQ: "Credential stores", type: 'choice', answerKey: 'credsUsed',
+    options: [ { label: "Yes", next: 'TERM_MIGRATION' }, { label: "No", next: 'TERM_MIGRATION' } ]
+  },
+  onboard_type: {
+    question: "New tenant onboarding, credential store setup, or both?", shortQ: "Onboarding kind", type: 'choice', answerKey: 'onboardKind', wide: true,
+    options: [
+      { label: "New tenant only", value: 'tenant', next: 'TERM_ONBOARD' },
+      { label: "Credential store only", value: 'store', next: 'onboard_store' },
+      { label: "Both", value: 'both', next: 'onboard_store' }
+    ]
+  },
+  onboard_store: {
+    question: "Which credential store?", shortQ: "Credential store", type: 'choice', answerKey: 'store', wide: true,
+    options: [
+      { label: "Azure Key Vault", next: 'TERM_ONBOARD' }, { label: "CyberArk CCP", next: 'TERM_ONBOARD' },
+      { label: "HashiCorp Vault", next: 'TERM_ONBOARD' }, { label: "BeyondTrust", next: 'TERM_ONBOARD' }
+    ]
+  },
+  trouble_error: {
+    question: "Paste the exact error message or symptom:", shortQ: "Error/symptom", type: 'text', answerKey: 'errorText',
+    placeholder: "e.g. The MetadataAddress must use HTTPS", next: 'TERM_TROUBLESHOOT'
+  },
+
+  TERM_STANDALONE_INSTALL: { terminal: true, render: (a) => {
+    let warn = '';
+    if (a.targetVersion && VERSION_INFO[a.targetVersion] && VERSION_INFO[a.targetVersion].status === 'End of Life') {
+      warn = '<div class="warn">⚠️ ' + a.targetVersion + ' is End of Life &mdash; consider recommending a currently Active LTS version instead.</div>';
+    }
+    return '<div class="result-card"><div class="result-header"><span class="ic">🖥️</span><h2>Standalone Orchestrator Install</h2></div>' +
+      scopeChips([a.targetVersion, a.topology]) + warn + actionBar() + renderFileBlock(MD.install) + '</div>';
+  }},
+  TERM_AS_INSTALL: { terminal: true, render: (a) => {
+    let warn = (a.profile && a.profile.indexOf('single_node_serverless') === 0) ? '<div class="warn">⚠️ single_node_serverless is dev/test only &mdash; never use it in production (data loss risk on node failure).</div>' : '';
+    return '<div class="result-card"><div class="result-header"><span class="ic">☸️</span><h2>Automation Suite Install</h2></div>' +
+      scopeChips([a.platform, a.profile, a.airgap]) + warn + actionBar() + renderFileBlock(MD.as) + '</div>';
+  }},
+  TERM_STANDALONE_UPGRADE: { terminal: true, render: (a) => {
+    const warn = ltsSkipWarning(a.currentVersion, a.targetVersion);
+    return '<div class="result-card"><div class="result-header"><span class="ic">⬆️</span><h2>Standalone Orchestrator Upgrade</h2></div>' +
+      scopeChips([a.currentVersion + ' → ' + a.targetVersion, a.mode]) +
+      (warn ? '<div class="warn">⚠️ ' + warn + '</div>' : '') + actionBar() + renderFileBlock(MD.upgrade) + '</div>';
+  }},
+  TERM_AS_UPGRADE: { terminal: true, render: (a) => {
+    return '<div class="result-card"><div class="result-header"><span class="ic">⬆️</span><h2>Automation Suite Upgrade</h2></div>' +
+      scopeChips(['Automation Suite']) + actionBar() + renderFileBlock(MD.as) + '</div>';
+  }},
+  TERM_MIGRATION: { terminal: true, render: (a) => {
+    let warn = '';
+    if (a.currentVersion === '2021.10') warn = '<div class="warn">⚠️ Current version is below 2022.4 &mdash; upgrade Standalone first, then migrate.</div>';
+    let out = '<div class="result-card"><div class="result-header"><span class="ic">☁️</span><h2>Standalone → Automation Cloud Migration</h2></div>' +
+      scopeChips([a.currentVersion, 'preserve data: ' + a.preserveData, 'custom configs: ' + a.customConfigs, 'SSO: ' + a.sso, 'credential stores: ' + a.credsUsed]) +
+      warn + actionBar() + renderFileBlock(MD.migration);
+    if (a.credsUsed === 'Yes') {
+      out += '<h3 class="file-title">Since credential stores are involved, also see:</h3>' + renderFileBlock(MD.onboarding);
+    }
+    out += '</div>';
+    return out;
+  }},
+  TERM_ONBOARD: { terminal: true, render: (a) => {
+    return '<div class="result-card"><div class="result-header"><span class="ic">🔐</span><h2>Tenant / Credential Store Onboarding</h2></div>' +
+      scopeChips([a.onboardKind, a.store]) + actionBar() + renderFileBlock(MD.onboarding) + '</div>';
+  }},
+  TERM_TROUBLESHOOT: { terminal: true, render: (a) => {
+    const q = (a.errorText || '').toLowerCase();
+    const tokens = q.split(/[^a-z0-9]+/).filter(t => t.length > 2);
+    const scored = ERRORS.map(e => {
+      const errLower = e.error.toLowerCase();
+      let score = 0;
+      if (q.indexOf(errLower) !== -1 || errLower.indexOf(q) !== -1) score += 5;
+      tokens.forEach(t => { if (errLower.indexOf(t) !== -1) score += 1; });
+      return { e, score };
+    }).filter(x => x.score > 0).sort((x, y) => y.score - x.score).slice(0, 5);
+
+    let body = '';
+    if (scored.length) {
+      body += '<details class="section" open><summary>🐛 Likely matches<span class="chevron">▶</span></summary><div class="section-body">' +
+        scored.map(({e}) => '<p><strong>' + e.error + '</strong> <em>(' + e.source + ')</em><br>Cause: ' + e.cause + '<br>Fix: ' + e.fix + '</p>').join('') +
+        '</div></details>';
+    } else {
+      body += '<details class="section" open><summary>🧭 General gotchas to check<span class="chevron">▶</span></summary><div class="section-body"><ul>' +
+        GOTCHAS.map(g => '<li>' + g + '</li>').join('') + '</ul></div></details>';
+    }
+    body += '<details class="section"><summary>🚨 Escalate to Engineering if<span class="chevron">▶</span></summary><div class="section-body"><ul>' +
+      ESCALATE.map(x => '<li>' + x + '</li>').join('') + '</ul></div></details>';
+
+    return '<div class="result-card"><div class="result-header"><span class="ic">🛠️</span><h2>Troubleshooting</h2></div>' +
+      scopeChips(['"' + a.errorText + '"']) + actionBar() + body + '</div>';
+  }}
+};
+
+restart();
+</script>
+</body>
+</html>
