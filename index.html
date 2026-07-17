@@ -47,6 +47,16 @@
   }
   #restartBtn:hover { background: rgba(255,255,255,0.16); }
 
+  #freshness { margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.14); }
+  #freshness .fresh-row { display:flex; align-items:center; gap: 7px; font-size: 11.5px; color: #9aa5bd; margin-bottom: 8px; }
+  #freshness .fresh-dot { width: 7px; height: 7px; border-radius: 50%; background: #3ddc84; flex-shrink:0; box-shadow: 0 0 0 3px rgba(61,220,132,0.15); }
+  #checkUpdatesBtn {
+    width: 100%; background: transparent; border: 1px solid rgba(255,255,255,0.22);
+    color: #cfd6e8; border-radius: 8px; padding: 8px; font-size: 11.5px; cursor: pointer; font-weight: 600;
+  }
+  #checkUpdatesBtn:hover { background: rgba(255,255,255,0.10); }
+  #checkUpdatesBtn:disabled { opacity: 0.6; cursor: default; }
+
   /* ---------- Main ---------- */
   #main { flex: 1; overflow-y: auto; padding: 36px 44px; display: flex; justify-content: center; }
   #mainInner { max-width: 760px; width: 100%; }
@@ -64,6 +74,22 @@
   }
   .opt-card .ic { font-size: 20px; flex-shrink: 0; }
   .opt-card:hover { border-color: var(--orange); background: #fff6f2; color: var(--orange); }
+  .field-row input[type=text] {
+    width: 100%; padding: 11px 13px; border-radius: 9px; border: 1.5px solid var(--border); font-size: 14px; font-family: inherit; background: #fafbfc;
+  }
+
+  .other-row-label { font-size: 11.5px; color: var(--muted); margin: 16px 0 7px; font-weight: 600; }
+  .other-row { display: flex; align-items: center; gap: 8px; }
+  .other-row input[type=text] {
+    flex: 1; padding: 11px 15px; border-radius: 100px; border: 1.5px solid var(--border);
+    font-size: 13.5px; font-family: inherit; background: #fafbfc;
+  }
+  .other-row input[type=text]:focus { outline: none; border-color: var(--orange); background: #fff; }
+  .other-send {
+    width: 38px; height: 38px; border-radius: 50%; border: none; background: var(--navy); color: white;
+    font-size: 15px; cursor: pointer; flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+  }
+  .other-send:hover { background: var(--orange); }
 
   .field-row select, .field-row textarea {
     width: 100%; padding: 11px 13px; border-radius: 9px; border: 1.5px solid var(--border); font-size: 14px; font-family: inherit; background: #fafbfc;
@@ -149,11 +175,14 @@
       <div class="logo">🧭</div>
       <div>
         <h1>UiPath PSE Support Assistant</h1>
-        <div class="sub">Interactive intake &middot; no API key, no cost</div>
       </div>
     </div>
     <ul id="progressList"><li class="empty">Your steps will appear here</li></ul>
     <button id="restartBtn">⟲ Start over</button>
+    <div id="freshness">
+      <div class="fresh-row"><span class="fresh-dot"></span><span id="freshText">Last verified —</span></div>
+      <button id="checkUpdatesBtn">ℹ️ How this stays current</button>
+    </div>
   </div>
   <div id="main"><div id="mainInner"></div></div>
 </div>
@@ -167,6 +196,16 @@ const MD = {
   onboarding: "# Automation Cloud \u2014 Multi-Tenant Onboarding & Credential Stores\n\n## Scope\nOnboarding new tenants/branches to Automation Cloud (including APAC multi-country patterns),\nand configuring credential stores (CyberArk CCP, Azure Key Vault, HashiCorp Vault, BeyondTrust).\n\n---\n\n## Multi-Tenant Onboarding Checklist\n\n> The real portal flow is: **Admin \u2192 Tenants view \u2192 click the \"+\" (plus) icon \u2192 Create new tenant**\n> (General step \u2192 Region/plan step \u2192 review). Exact menu labels can shift between UI releases, so\n> treat the steps below as a checklist of *what* to configure, not a pixel-accurate click-path \u2014 verify\n> against the live product. \ud83d\udcd6 https://docs.uipath.com/automation-cloud/automation-cloud/latest/admin-guide/managing-tenants\n> \ud83d\udcd6 https://docs.uipath.com/automation-cloud/automation-cloud/latest/admin-guide/about-tenants\n>\n> Note: creating additional tenants is a **Flex Pro / Enterprise** capability \u2014 Community and Free Flex\n> organizations are limited to the single auto-created `DefaultTenant`.\n\n### New Tenant Setup\n\n- [ ] **1.1** Admin \u2192 Tenants \u2192 \"+\" (Add Tenant)\n  - Name: use consistent naming convention (e.g., `APAC_Singapore`, `EMEA_London`); up to 32\n    alphanumeric characters, starting with a letter, no spaces/special characters\n  - Region: select closest region available on your plan\n- [ ] **1.2** Assign licenses to new tenant:\n  - Admin \u2192 select tenant \u2192 allocate licenses for the services you provision\n  - Allocate: Unattended Robot, Attended Robot, Studio seats as required\n  - \ud83d\udcd6 https://docs.uipath.com/automation-cloud/automation-cloud/latest/admin-guide/allocating-licenses-to-tenants\n- [ ] **1.3** Configure SSO for tenant (if using Azure AD / Entra ID per-country):\n  - Check current Admin navigation for external identity provider / SSO configuration \u2014 this has moved\n    across UI releases, so confirm the exact path in the live portal rather than relying on a fixed\n    click-path here\n  - Add your external IdP with the correct Tenant ID for that country's AD\n- [ ] **1.4** Create Folder structure:\n  - Follow naming convention: `<Country>/<BU>/<Environment>`\n  - e.g., `SG/Finance/Production`\n- [ ] **1.5** Create Machine Templates for the tenant's Robot machines\n- [ ] **1.6** Add Robot user accounts (Directory or Local)\n- [ ] **1.7** Configure credential store (see below)\n- [ ] **1.8** Upload packages / create processes\n- [ ] **1.9** Test end-to-end Robot connectivity and job execution\n\n### Tenant Isolation Considerations\n\n| Setting | Recommendation |\n|---|---|\n| Folder permissions | Scope strictly to tenant's own folders |\n| Credential stores | Configure per-tenant (not shared across tenants) \u2014 **this matters even for the same third-party vault**: UiPath's own CyberArk CCP docs warn that a CyberArk store configured in multiple tenants with the *same* App ID, Safe, and Folder Name will permit cross-tenant access to the same stored credentials. Use distinct App ID/Safe/Folder combinations per tenant. \ud83d\udcd6 https://docs.uipath.com/orchestrator/automation-cloud/latest/user-guide/managing-credential-stores#cyberark-ccp |\n| Packages | Use separate feeds per tenant or folder-level access control |\n| SSO | Per-country identity provider tenants if different domains |\n| Robots | Machine templates scoped to tenant folders |\n\n---\n\n## Credential Store Setup Guides\n\n> Third-party credential stores (Azure Key Vault, CyberArk, HashiCorp Vault, BeyondTrust, etc.) require\n> **Enterprise \u2013 Advanced** (Flex Pricing) or **Enterprise / Application Test Enterprise** (Unified\n> Pricing) licensing. \ud83d\udcd6 https://docs.uipath.com/orchestrator/automation-cloud/latest/user-guide/managing-credential-stores\n>\n> Real navigation to add any store: **Orchestrator \u2192 (Tenant context) \u2192 Credentials \u2192 Stores tab \u2192\n> \"Add credential store\"** \u2192 pick a **Type** in the dialog. \ud83d\udcd6 https://docs.uipath.com/orchestrator/automation-cloud/latest/user-guide/managing-credential-stores#creating-a-credential-store\n\n### Option 1 \u2014 Azure Key Vault (Most Common for Cloud)\n\n**Required Azure permissions for the SPN/App Registration:**\n\nConfirmed against UiPath docs \u2014 Azure Key Vault credential stores use Azure RBAC authentication, and\nthe role assigned to the service principal depends on store type:\n\n| Mode | Required Azure RBAC Role |\n|---|---|\n| Read-Only (`Azure Key Vault (read-only)` store type) | **Key Vault Secrets User** |\n| Read-Write (`Azure Key Vault` store type) | **Key Vault Secrets Officer** |\n\n\ud83d\udcd6 https://docs.uipath.com/orchestrator/automation-cloud/latest/user-guide/integrating-credential-stores#azure-key-vault-integration\n\n**Azure Setup:**\n```\n1. Azure Portal \u2192 App Registrations \u2192 New Registration\n2. Note: Application (Client) ID\n3. Create Client Secret (Manage \u2192 Certificates & Secrets \u2192 New client secret)\n   \u2192 Note the secret Value immediately (only shown once)\n4. Azure Portal \u2192 Key Vaults \u2192 [Your Vault] \u2192 Overview\n   \u2192 Copy Vault URI and Directory ID for later use\n5. Access Control (IAM) \u2192 Add \u2192 Add role assignment\n   \u2192 Role: \"Key Vault Secrets Officer\" (for the read-write store)\n      OR \"Key Vault Secrets User\" (for the read-only store)\n   \u2192 Assign the role to the service principal of your App Registration\n   \u2192 Review + assign\n```\n*(No redirect URI is required for this flow \u2014 Key Vault access uses the app registration's client\ncredentials, not an interactive OAuth redirect. The original draft's \"callback\" redirect URI step was\nnot found in UiPath or Microsoft documentation and has been removed as unverifiable.)*\n\n**Orchestrator Setup:**\n```\n1. Orchestrator \u2192 Tenant \u2192 Credentials \u2192 Stores tab \u2192 Add credential store\n2. Type: Azure Key Vault (read-write) OR Azure Key Vault (read-only)\n3. Name: <descriptive name for this store>\n4. Key Vault Uri: https://<vault-name>.vault.azure.net/\n5. Directory ID: <Directory/Tenant ID from the Key Vault Overview page>\n6. Client Id: <Application (Client) ID from Azure AD App Registration>\n7. Client Secret: <Secret value>\n8. Select Create \u2014 Orchestrator validates and creates the store\n```\n\ud83d\udcd6 https://docs.uipath.com/orchestrator/automation-cloud/latest/user-guide/managing-credential-stores#azure-key-vault\n\n**Validate SPN connectivity (PowerShell):**\n\n*This is a generic Azure AD client-credentials check, not a UiPath-published script \u2014 use it as a\nstarting point for connectivity troubleshooting, not as an official UiPath procedure.*\n```powershell\n$tenantId = \"<azure-tenant-id>\"\n$clientId = \"<app-registration-client-id>\"\n$clientSecret = \"<client-secret>\"\n$vaultName = \"<key-vault-name>\"\n\n$tokenResponse = Invoke-WebRequest -Method Post `\n  -Uri \"https://login.microsoftonline.com/$tenantId/oauth2/token\" `\n  -ContentType \"application/x-www-form-urlencoded\" `\n  -Body \"grant_type=client_credentials&client_id=$clientId&client_secret=$clientSecret&resource=https://vault.azure.net\"\n\n$token = ($tokenResponse.Content | ConvertFrom-Json).access_token\nWrite-Host \"Token obtained: $($token.Substring(0,20))...\"\n\n# Test listing secrets\n$secrets = Invoke-WebRequest -Method Get `\n  -Uri \"https://$vaultName.vault.azure.net/secrets?api-version=7.3\" `\n  -Headers @{ \"Authorization\" = \"Bearer $token\" }\nWrite-Host \"Secrets accessible: $(($secrets.Content | ConvertFrom-Json).value.Count)\"\n```\n\n---\n\n### Option 2 \u2014 CyberArk CCP (Credential Provider)\n\n**Architecture:**\n```\nRobot \u2192 Orchestrator \u2192 CyberArk CCP REST API (AIMWebService) \u2192 CyberArk Vault\n```\n\n**Prerequisites (confirmed):**\n- Network connectivity between the Orchestrator service and the CyberArk CCP server\n- CyberArk Central Credential Provider installed on a machine that allows HTTP connections\n- CyberArk Enterprise Password Vault\n- An Orchestrator \"application\" created in CyberArk PVWA (Applications tab \u2192 Add Application),\n  authenticated via client certificate (2048-bit minimum)\n- A Safe created in PVWA with the Orchestrator application added as a Safe member with\n  **View Safe Members**, **Retrieve accounts**, **List accounts** permissions\n\n\ud83d\udcd6 https://docs.uipath.com/orchestrator/automation-cloud/latest/user-guide/integrating-credential-stores#cyberark-ccp-integration\n\n**Orchestrator Setup (Automation Cloud) \u2014 actual field names:**\n```\n1. Orchestrator \u2192 Tenant \u2192 Credentials \u2192 Stores tab \u2192 Add credential store\n2. Type: CyberArk CCP\n3. Name: <descriptive name for this store>\n4. App ID: <Application ID configured in CyberArk PVWA>\n5. CyberArk Safe: <Safe name defined in PVWA>\n6. CyberArk Folder: <folder within the Safe where credentials live>\n7. Central Credential Provider URL: <address of your CCP server>\n8. Web Service Name: (optional \u2014 defaults to AIMWebService if left blank)\n9. Client Certificate / Client Certificate Password: (for mutual TLS auth)\n10. Server Root Certificate: (only needed if CCP's AIMWebService uses a self-signed root CA)\n11. Select Create\n```\n\ud83d\udcd6 https://docs.uipath.com/orchestrator/automation-cloud/latest/user-guide/managing-credential-stores#cyberark-ccp\n\n**CyberArk Errors you may see (verified against CyberArk's Application Provider Messages reference):**\n\n> The error *codes* below are real CyberArk Credential Provider messages. The original draft of this\n> KB had paired them with the wrong causes \u2014 corrected here against CyberArk's own documentation.\n\n| Error | Actual CyberArk-documented cause | Fix |\n|---|---|---|\n| `APPAP004E` \u2014 Password object in Safe/folder was not found | The requested password object doesn't exist in that Safe/folder, **or** the application/Credential Provider user lacks permission for that specific password | Confirm the object exists in the exact Safe + folder queried; verify the App ID's account has retrieve rights on it |\n| `APPAP007E` \u2014 Connection to the backend/Vault has failed | Network/communication error or timeout reaching the Vault (e.g. `ITACM012S` timeout, `ITACM022S` unable to connect) | Check network/firewall path from Orchestrator/CCP to the CyberArk Vault; confirm the Vault and CCP service are reachable and up |\n| `APPAP008E` \u2014 Problem using the application user in the Vault | The application user is disabled, expired, connecting from an unauthorized/suspended network area, outside its permitted time slice, or has the wrong User Type (must be `AIMAccount`) | Enable/un-expire the App ID, verify the Orchestrator server's IP is in an allowed network area, confirm User Type = AIMAccount |\n| SSL certificate error | CyberArk CCP cert not trusted by Orchestrator | Import the CyberArk CCP (AIMWebService) certificate into the Orchestrator server's trust store, or configure the **Server Root Certificate** field if self-signed |\n| Connection timeout | CyberArk CCP not reachable | Check firewall/network path from Orchestrator to the CCP server |\n\n\ud83d\udcd6 https://docs.cyberark.com/credential-providers/latest/en/content/messages/application%20provider%20messages%20-%20general.htm\n\n---\n\n### Option 3 \u2014 HashiCorp Vault\n\n**Prerequisites:**\n- HashiCorp Vault server accessible from Orchestrator \u2014 API port (**8200** in a typical install) open\n  through any firewall between Orchestrator and the Vault server\n- A configured secrets engine (see options below)\n- An authentication method configured for Orchestrator to use\n\n**Orchestrator Setup \u2014 actual field names:**\n```\n1. Orchestrator \u2192 Tenant \u2192 Credentials \u2192 Stores tab \u2192 Add credential store\n2. Type: HashiCorp Vault (read-write) OR HashiCorp Vault (read-only)\n3. Name: <descriptive name>\n4. Vault Uri: https://<vault-server>:8200  (address of Vault's HTTP API)\n5. Authentication Type \u2014 pick one:\n   - AppRole (recommended) \u2192 Role Id + Secret Id\n   - UsernamePassword \u2192 Username + Password\n   - Ldap \u2192 Username + Password (+ optional \"Use Dynamic Credentials\" toggle)\n   - Token \u2192 Token\n6. Secrets Engine: KeyValueV1, KeyValueV2, ActiveDirectory, OpenLDAP, or LDAP\n   (ActiveDirectory/OpenLDAP available only for the read-only store)\n7. Secrets Engine Mount Path (defaults to kv / kv-v2 / ad depending on engine)\n8. Data Path: path prefix used for all stored secrets\n9. Authentication Mount Path: optional, only if you mounted auth on a custom path\n10. Namespace: optional, HashiCorp Vault Enterprise only\n11. Select Create\n```\n\ud83d\udcd6 https://docs.uipath.com/orchestrator/automation-cloud/latest/user-guide/integrating-credential-stores#hashicorp-vault-integration\n\ud83d\udcd6 https://docs.uipath.com/orchestrator/automation-cloud/latest/user-guide/managing-credential-stores#hashicorp-vault\n\n---\n\n### Option 4 \u2014 BeyondTrust Password Safe\n\n> **Important \u2014 corrected:** the BeyondTrust integration is **read-only**. Orchestrator can retrieve\n> credentials from BeyondTrust but cannot create, update, or delete them there. There is no single\n> generic \"BeyondTrust\" store type, API URL, or API Key field as previously drafted \u2014 the real\n> configuration uses two distinct plugin types with their own fields.\n\n**Orchestrator Setup \u2014 actual field names:**\n```\n1. Orchestrator \u2192 Tenant \u2192 Credentials \u2192 Stores tab \u2192 Add credential store\n2. Type: BeyondTrust Password Safe - Managed Accounts\n     OR: BeyondTrust Password Safe - Team Passwords\n3. Name: <descriptive name>\n4. BeyondTrust Host URL: <URL of your BeyondTrust Password Safe instance>\n5. API Registration Key: <API registration key generated in BeyondTrust>\n6. API Run As Username: <BeyondTrust username the API calls execute as>\n\nIf Managed Accounts:\n7. Default Managed System Name: optional fallback if the asset's External Name has no System Name prefix\n8. System-Account Delimiter: delimiter splitting System Name from Account Name\n9. Managed Account Type: \"system\" (local accounts) or \"domainlinked\" (domain accounts)\n\nIf Team Passwords:\n7. Folder Path Prefix: optional, prepended to all Orchestrator asset values\n8. Folder/Account Delimiter: splits Path from Title in the Orchestrator asset\n\n10. Select Create\n```\n\ud83d\udcd6 https://docs.uipath.com/orchestrator/automation-cloud/latest/user-guide/integrating-credential-stores#beyondtrust-integration\n\ud83d\udcd6 https://docs.uipath.com/orchestrator/automation-cloud/latest/user-guide/managing-credential-stores#beyondtrust\n\n---\n\n## Using Credential Store Assets\n\nOnce a credential store is configured:\n\n```\nOrchestrator \u2192 Folder \u2192 Assets \u2192 Add Asset\nType: Credential\nCredential Store: [select your configured store]\nExternal Name: <identifier of the secret in the vault>\n```\n\n> **Important:** The External Name is used to locate the secret in the vault (often concatenated with\n> a configured data path). Treat it as needing an **exact match** to what's provisioned in the vault.\n> The previous claim that this is \"case-sensitive for Azure Key Vault, case-insensitive for CyberArk\"\n> could not be verified against current UiPath documentation and has been removed \u2014 case-sensitivity\n> behavior depends on the specific vault/secrets engine and should be confirmed for your store type\n> rather than assumed. \ud83d\udcd6 https://docs.uipath.com/orchestrator/automation-cloud/latest/user-guide/managing-credential-stores\n\nIn Robot process (Studio):\n```\nGet Asset activity \u2192 Asset Name: \"MyCredentialAsset\"\n\u2192 Returns username + password from the vault at runtime\n\u2192 Credentials are never cached locally on the Robot machine\n```\n\n---\n\n## Dedicated Automation Cloud (Private Cloud) \u2014 Migration Notes\n\n> **Correction:** the original draft's specific DNS-zone and sequencing steps for this section could\n> not be verified against UiPath documentation and have been replaced with verified, general guidance.\n> Also note that **Automation Cloud Private Link** (connecting to the standard multi-tenant Automation\n> Cloud over Azure Private Link, Enterprise plan, with primary/secondary gateways in West Europe /\n> North Europe) and **Automation Cloud Dedicated** (a separate, single-tenant dedicated deployment) are\n> two different offerings \u2014 don't treat them as the same migration path.\n\nFor customers migrating to **Automation Cloud Dedicated** (dedicated/private instance):\n\n- [ ] Engage the UiPath Cloud team early \u2014 dedicated instance provisioning and any private\n      connectivity option is coordinated with UiPath, not self-service\n- [ ] If using Azure Private Link connectivity, work with UiPath to provision the private endpoint(s)\n      on the UiPath side and confirm the approval/connection steps currently documented \u2014 do not rely\n      on a fixed DNS-zone name without confirming it against current docs\n- [ ] Multi-tenant \u2192 Dedicated migration: data migration is performed by the UiPath Cloud team\n      (submit a Support Request / SR)\n- [ ] Robot agents may require updated connection strings/endpoints post-migration \u2014 validate\n      end-to-end connectivity after cutover before decommissioning the old tenant\n\n\ud83d\udcd6 https://docs.uipath.com/automation-cloud/automation-cloud/latest/admin-guide/introduction (the standalone Dedicated overview page has been merged into this general \"About Automation Cloud\" page, which now covers Cloud / Public Sector / Dedicated together \u2014 re-confirm Dedicated-specific details here going forward)\n\n**General sequencing guidance (verify exact steps live with UiPath before executing):**\n```\n1. Customer/UiPath jointly scope the private connectivity requirement (Private Link vs Dedicated)\n2. Customer provisions any required Azure-side resources (e.g., Private Endpoint) per current\n   UiPath guidance for the chosen option\n3. UiPath approves/completes the connection on their side\n4. Customer validates DNS resolution and connectivity end-to-end per the current UiPath instructions\n5. Update Robot connections/endpoints as instructed and re-test job execution\n```\n\n---\n\n## Troubleshooting Credential Store Issues\n\n```powershell\n# Quick diagnostic: test credential retrieval from Robot machine\n# Run in Studio \u2192 Debug mode with Get Asset activity\n# Check Robot logs for credential fetch errors:\nGet-Content \"$env:LOCALAPPDATA\\UiPath\\Logs\\*\" | Select-String \"credential|asset|vault|CyberArk|KeyVault\" | Select-Object -Last 50\n```\n\n**Common cross-credential-store errors:**\n\n| Error | Likely Cause |\n|---|---|\n| `Credential store connection failed` | Network/firewall blocking Orchestrator \u2192 Vault |\n| `Invalid credentials` | Client Secret expired (AKV) or token/AppRole credentials expired (HashiCorp Vault) |\n| `External name not found` | Secret name/path mismatch \u2014 check exact spelling and any configured Data Path prefix |\n| `Permission denied` | SPN/App lacks `Set` (Key Vault Secrets Officer) permission for read-write mode, or CyberArk Safe access is missing |\n| Works in Read-Only, fails in Read-Write | SPN only has the **Key Vault Secrets User** role \u2014 needs **Key Vault Secrets Officer** for a read-write store |\n\n---\n\n## Reference Links\n\n- Azure Key Vault integration (prerequisites/setup): https://docs.uipath.com/orchestrator/automation-cloud/latest/user-guide/integrating-credential-stores#azure-key-vault-integration\n- Azure Key Vault store fields (Orchestrator UI): https://docs.uipath.com/orchestrator/automation-cloud/latest/user-guide/managing-credential-stores#azure-key-vault\n- CyberArk CCP integration (prerequisites/setup): https://docs.uipath.com/orchestrator/automation-cloud/latest/user-guide/integrating-credential-stores#cyberark-ccp-integration\n- CyberArk CCP store fields (Orchestrator UI): https://docs.uipath.com/orchestrator/automation-cloud/latest/user-guide/managing-credential-stores#cyberark-ccp\n- CyberArk Application Provider error messages (source of truth for APPAP*** codes): https://docs.cyberark.com/credential-providers/latest/en/content/messages/application%20provider%20messages%20-%20general.htm\n- HashiCorp Vault integration: https://docs.uipath.com/orchestrator/automation-cloud/latest/user-guide/integrating-credential-stores#hashicorp-vault-integration\n- HashiCorp Vault store fields (Orchestrator UI): https://docs.uipath.com/orchestrator/automation-cloud/latest/user-guide/managing-credential-stores#hashicorp-vault\n- BeyondTrust integration: https://docs.uipath.com/orchestrator/automation-cloud/latest/user-guide/integrating-credential-stores#beyondtrust-integration\n- BeyondTrust store fields (Orchestrator UI): https://docs.uipath.com/orchestrator/automation-cloud/latest/user-guide/managing-credential-stores#beyondtrust\n- Multi-tenancy \u2014 About tenants: https://docs.uipath.com/automation-cloud/automation-cloud/latest/admin-guide/about-tenants\n- Multi-tenancy \u2014 Managing/creating tenants: https://docs.uipath.com/automation-cloud/automation-cloud/latest/admin-guide/managing-tenants\n- Allocating licenses to tenants: https://docs.uipath.com/automation-cloud/automation-cloud/latest/admin-guide/allocating-licenses-to-tenants\n- Automation Cloud Dedicated overview (merged into the general About page): https://docs.uipath.com/automation-cloud/automation-cloud/latest/admin-guide/introduction\n",
   folders: "# Orchestrator \u2014 Migrating Classic Folders to Modern Folders\n\n## Scope\nMigrating an existing Standalone or Automation Cloud tenant from Classic folders (environment-based,\nmanually managed users/robots) to Modern folders (hierarchical, AD-integrated, auto-provisioned).\nCovers the built-in migration wizard, post-migration cleanup, rollback, and the hard removal of\nClassic folders in Orchestrator 2023.10+.\n\n---\n\n## Why This Matters Now\n\nClassic folders are not just deprecated \u2014 they are **removed outright** starting with Orchestrator\n2023.10. Timeline:\n\n- Oct 2021 \u2014 deprecation announced\n- Apr 2022 \u2014 removal announced\n- Oct 2022 \u2014 migration wizard launched\n- Apr 2023 \u2014 executions disabled in classic folders\n- Oct 2023 \u2014 classic folders removed entirely from 2023.10+\n\n**If a customer upgrades to 2023.10+ with any classic objects still in the database, setup stops with:**\n`This Orchestrator version does not support Classic Folders and Classic Robots. Please migrate your\ninstallation to Modern Folders, delete your existing Classic Folders before upgrading.`\n\nSo this is mandatory, not optional, for any pre-2023.10 customer planning to upgrade.\n\n---\n\n## Classic vs Modern \u2014 What Changes\n\n| Feature | Classic Folders | Modern Folders |\n|---|---|---|\n| AD as central hub for user info | Available | Available |\n| SSO with AD credentials | Available | Available |\n| Automatic Robot Management | Not available | Available |\n| Automatic License Assignment | Not available | Available |\n| Hierarchical Folder Structure | Not available | Available |\n| Fine-Grained Permissions | Not available | Available |\n| Job Restart | Available | Available |\n| Long-Running Workflows | Available | Available |\n\n---\n\n## Prerequisites Checklist\n\n- [ ] Confirm you are an **organization administrator** in Automation Cloud\n- [ ] Confirm your account has these permissions: Roles (View/Create/Edit), Settings (View/Edit), Users (View/Create/Edit), Robots (View/Create/Edit/Delete), Folders (Create/Edit)\n- [ ] Count classic robots in scope \u2014 **do not use the wizard above ~2,000 classic robots per folder set**; large deployments need a dedicated migration strategy instead\n- [ ] Add yourself to **every classic folder** you want migrated \u2014 folders you're not assigned to are silently skipped\n- [ ] Confirm every robot you want migrated is added to an **environment** \u2014 robots not in any environment are presumed unused and skipped\n- [ ] Review the Automation Users group \u2014 remove elevated roles/extra licenses before migrating, since attended users/robot accounts auto-inherit Automation Users role at folder level post-migration\n- [ ] Confirm attended-robot usernames contain `@` (i.e. are directory users, not local users) \u2014 local users block migration (see Common Errors)\n- [ ] Make sure **no jobs are running** and disable any triggers that might fire during the migration window\n\n---\n\n## Step-by-Step Migration Checklist (Wizard)\n\n### Phase 1 \u2014 Getting Started\n- [ ] **1.1** Go to Tenant \u2192 Settings (opens on the General tab)\n- [ ] **1.2** In the Classic Folders section, click **Start migration** \u2014 opens the Modern migration wizard\n- [ ] **1.3** Review the Summary section, click **Copy the summary above**, and save it for your records\n- [ ] **1.4** Click **Next** to move to the Attended users step\n\n### Phase 2 \u2014 Attended Users\n- [ ] **2.1** For each attended robot found, select the correct **Target user account**\n- [ ] **2.2** For any unmapped/incorrect account: click **Assign** \u2192 search for the user \u2192 **Save**\n- [ ] **2.3** Click **Next** to move to the Unattended users step\n\n### Phase 3 \u2014 Unattended Users\n- [ ] **3.1** Under Bulk Actions, choose how to handle unmapped classic unattended robots \u2014 **Automatically generate robot accounts** (recommended) or **Ignore them** (not recommended)\n- [ ] **3.2** Review the Target robot account column for correctness\n- [ ] **3.3** If you chose \"Ignore them,\" manually map remaining robots via Assign, or create new robot accounts\n- [ ] **3.4** Click **Next** to reach the Finishing page\n\n### Phase 4 \u2014 Execute\n- [ ] **4.1** Click **Execute migration** to start\n- [ ] **4.2** Confirm in the dialog by clicking **Execute**\n- [ ] **4.3** Watch per-folder progress; if any folder fails, read its error message, fix the underlying issue, then restart or retry that folder\n- [ ] **4.4** Click **Close** to exit the wizard once successful\n- [ ] **4.5** Wait ~10 minutes after completion for the wizard to disable robots in migrated classic folders and release licenses back for modern-folder use\n\n---\n\n## Post-Migration Setup (Required \u2014 Not Automatic)\n\nRobots and Environments do **not** need re-provisioning. Everything else below does:\n\n- [ ] Recompile workflows using Orchestrator activities or direct HTTP calls to the Orchestrator API against **UiPath.System.Activities 2019.10+** \u2014 migrated workflows only run on 2019.10+ Robots\n- [ ] Re-provision other entities (e.g. action catalogs) in the corresponding modern folder\n- [ ] Unlink Test Sets from classic folders (delete from the corresponding Test Manager projects)\n- [ ] Re-link Test Sets by selecting the ones marked **[Migrated]** in their description\n- [ ] Update any UiPath Apps referencing the old classic-folder process to point at the migrated modern-folder process\n- [ ] Update workflows using **Start Job** with the old `processName_envName` syntax to just `processName` (modern folders don't use environments)\n- [ ] Enable **interactive sign-in** for the tenant if not already on \u2014 this is mandatory in modern folders\n- [ ] Test unattended processes via Start Job from Orchestrator in the new modern setup\n- [ ] Upgrade end-user workstations to **UiPath Robot 2019.10+**\n- [ ] Remove the now-unused classic folders once everything is validated\n\n---\n\n## Reverting to Classic Folders (Rollback)\n\nIf something goes wrong post-migration and you need to roll back:\n\n- [ ] Set the tenant's robot authentication settings back to **Hybrid**\n- [ ] Re-enable all classic robots\n- [ ] Re-enable triggers in classic folders\n- [ ] Delete the newly created modern folders\n- [ ] Delete the newly created robot accounts\n- [ ] Investigate the root cause in the classic setup before re-attempting\n- [ ] Re-run the migration once the root cause is resolved\n\n---\n\n## Common Errors & Fixes\n\n| Error / Symptom | Cause | Fix |\n|---|---|---|\n| `This Orchestrator version does not support Classic Folders and Classic Robots...` | Upgrading to 2023.10+ with classic objects still present | Migrate all classic folders to modern, delete remaining classic folders, then retry the upgrade |\n| Migration fails related to jobs not reaching final state | A terminated job stayed in `Terminating` instead of reaching `Stopped` | Wait \u2014 after 24h stuck `Terminating` jobs auto-flip to `Stopped`, then restart the migration |\n| Migration fails for Test Data Queues / duplicate items on retry | Partially-migrated data left over from a prior failed attempt | Check **Clean-up before retrying** before restarting the migration |\n| Migration does not succeed for a given attended robot | Robot's username has no `@` \u2014 it's a local user, not a directory user | Convert to a directory user (usually automatic on next login) or run the documented SQL fix against `dbo.Users` / `dbo.UserLogins` |\n| Robot mapping/creation fails for a specific robot | Migrated robot name exceeds the 64-character limit | Manually create the robot account and map it yourself |\n| Robot connects with the wrong/unexpected username after migration | Multiple attended robots were mapped to the same target account \u2014 the wizard picks one username at random | Manually verify and fix the machine connection credentials per robot |\n| Queue trigger can't be edited mid-migration | Editing classic-folder queue triggers is blocked from the moment migration starts until it completes | Wait for migration to finish (or fail/rollback) before editing that trigger |\n\n---\n\n## Reference Links\n\n- Migrating From Classic to Modern Folders: https://docs.uipath.com/orchestrator/standalone/2023.4/user-guide/migrating-from-classic-folders-to-modern-folders\n- Classic Folders Vs Modern Folders: https://docs.uipath.com/orchestrator/standalone/2023.4/user-guide/classic-folders-vs-modern-folders\n- Classic Folders Removal (timeline & 2023.10+ impact): https://docs.uipath.com/overview/other/latest/overview/classic-folders-removal\n"
 };
+
+// ---------- Freshness / update-check config ----------
+// LAST_VERIFIED is bumped by the daily freshness-check task every time it runs (whether or not
+// content changed) so anyone opening this file can see how current it is at a glance.
+const LAST_VERIFIED = "2026-07-16";
+// Distribution for this wizard is intentionally manual (no shared-drive connector) — each PSE
+// keeps their own copy of this file, refreshed whenever the owner re-shares it after a daily
+// verification pass. CANONICAL_URL is left blank on purpose; if that ever changes, fill it in
+// and the button below will offer to open the shared copy instead of showing manual-check text.
+const CANONICAL_URL = "";
 
 const ALL_VERSIONS = ["2021.10","2022.4","2022.10","2023.4","2023.10","2024.10","2025.10"];
 const VERSION_INFO = {
@@ -234,7 +273,24 @@ function escapeHtml(s) { return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').r
 function renderInline(s) {
   s = s.replace(/`([^`]+)`/g, (m, c) => '<code>' + c + '</code>');
   s = s.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
-  s = s.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+  // Convert markdown [text](url) links to placeholders first so the bare-URL
+  // autolinker below doesn't re-process URLs that are already inside an href.
+  const linkStash = [];
+  s = s.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, (m, text, url) => {
+    linkStash.push('<a href="' + url + '" target="_blank" rel="noopener">' + text + '</a>');
+    return '\u0000LINK' + (linkStash.length - 1) + '\u0000';
+  });
+  // Autolink any remaining bare URLs (e.g. inline "\ud83d\udcd6 https://docs.uipath.com/...\" citations)
+  // so every reference link is clickable, not just markdown-style [text](url) ones.
+  s = s.replace(/(https?:\/\/[^\s<>()"']+)/g, (m, url) => {
+    let trail = '';
+    while (url.length && /[).,;:'"]/.test(url[url.length - 1])) {
+      trail = url[url.length - 1] + trail;
+      url = url.slice(0, -1);
+    }
+    return '<a href="' + url + '" target="_blank" rel="noopener">' + url + '</a>' + trail;
+  });
+  s = s.replace(/\u0000LINK(\d+)\u0000/g, (m, i) => linkStash[parseInt(i, 10)]);
   return s;
 }
 
@@ -251,6 +307,9 @@ function iconForSection(title) {
   if (t.includes('emergency')) return '🚨';
   if (t.includes('deployment profile')) return '⚙️';
   if (t.includes('sql maintenance')) return '🗄️';
+  if (t.includes('prerequisite')) return '🧭';
+  if (t.includes('matters')) return '⏳';
+  if (t.includes('vs modern') || t.includes('what changes')) return '🔄';
   if (t.includes('checklist')) return '📋';
   return '📄';
 }
@@ -259,7 +318,7 @@ function iconForSection(title) {
 function renderBody(md) {
   const lines = escapeHtml(md).split('\n');
   let html = '', inCode = false, codeBuf = [], listType = null, tableBuf = [];
-  function flushList() { if (listType) { html += '</' + (listType === 'ul-chk' ? 'ul' : listType) + '>'; listType = null; } }
+  function flushList() { if (listType) { html += '</' + listType + '>'; listType = null; } }
   function flushTable() {
     if (tableBuf.length) {
       const rows = tableBuf.filter(r => !/^\s*\|?\s*-{2,}/.test(r));
@@ -375,11 +434,11 @@ document.getElementById('main').addEventListener('change', (e) => {
 function iconForLabel(label) {
   const l = label.toLowerCase();
   if (l.includes('fresh install')) return '🖥️';
-  if (l.includes('folder')) return '📁';
   if (l.includes('upgrade')) return '⬆️';
   if (l.includes('migrate')) return '☁️';
   if (l.includes('onboard')) return '🔐';
   if (l.includes('broken') || l.includes('troubleshoot')) return '🛠️';
+  if (l.includes('classic')) return '🗂️';
   if (l.includes('standalone')) return '🖥️';
   if (l.includes('automation suite')) return '☸️';
   if (l.includes('aks') || l.includes('eks') || l.includes('gke') || l.includes('openshift') || l.includes('on-prem')) return '☸️';
@@ -421,7 +480,23 @@ function renderSidebar() {
 
 function versionSelectHtml(id) {
   let opts = ALL_VERSIONS.map(v => '<option value="' + v + '">' + v + ' (' + VERSION_INFO[v].type + ', ' + VERSION_INFO[v].status + ')</option>').join('');
-  return '<select id="' + id + '"><option value="">Select a version&hellip;</option>' + opts + '</select>';
+  return '<select id="' + id + '"><option value="">Select a version&hellip;</option>' + opts +
+    '<option value="__other__">Other / not listed&hellip;</option></select>' +
+    '<input type="text" id="' + id + '_other" placeholder="Type the version&hellip;" style="display:none; margin-top:8px;">';
+}
+
+function matchOptionFuzzy(options, text) {
+  const q = text.toLowerCase();
+  const tokens = q.split(/[^a-z0-9]+/).filter(t => t.length > 2);
+  let best = null, bestScore = 0;
+  options.forEach(opt => {
+    const l = opt.label.toLowerCase();
+    let score = 0;
+    if (q.indexOf(l) !== -1 || l.indexOf(q) !== -1) score += 5;
+    tokens.forEach(t => { if (l.indexOf(t) !== -1) score += 1; });
+    if (score > bestScore) { bestScore = score; best = opt; }
+  });
+  return bestScore > 0 ? best : null;
 }
 
 function ltsSkipWarning(current, target) {
@@ -432,6 +507,27 @@ function ltsSkipWarning(current, target) {
     return 'This jump skips LTS version(s): <strong>' + skipped.join(', ') + '</strong>. UiPath requires sequential LTS upgrades &mdash; plan intermediate hops through ' + skipped.join(' &rarr; ') + ' before reaching ' + target + '.';
   }
   return null;
+}
+
+function classicFolderUpgradeWarning(currentVersion, targetVersion) {
+  const cutoff = ALL_VERSIONS.indexOf('2023.10');
+  const targetIdx = ALL_VERSIONS.indexOf(targetVersion);
+  if (targetIdx === -1 || targetIdx < cutoff) return null; // target itself predates the removal, not relevant
+
+  const currentIdx = ALL_VERSIONS.indexOf(currentVersion);
+  if (currentIdx !== -1 && currentIdx >= cutoff) {
+    // Current version is already 2023.10+, which means Classic folders cannot exist here —
+    // they would have had to be migrated already just to reach this version. Nothing to warn about.
+    return null;
+  }
+
+  if (currentIdx === -1) {
+    // Current version wasn't recognized/selected (e.g. "Other") — we can't rule this out, so warn
+    // but phrase it as a check rather than an assertion.
+    return 'Target is <strong>' + targetVersion + '</strong> &mdash; if your <em>current</em> version predates 2023.10, note that Orchestrator 2023.10+ blocks setup outright if any Classic folders/robots remain in the database. Confirm none remain (migrated to Modern folders, classic folders deleted) before upgrading. If your current version is already 2023.10 or later, this does not apply — Classic folders cannot exist there.';
+  }
+
+  return 'Current version is <strong>' + currentVersion + '</strong> (predates 2023.10) and target is <strong>' + targetVersion + '</strong> &mdash; Orchestrator 2023.10+ blocks setup outright if any Classic folders/robots remain in the database. Confirm they have been migrated to Modern folders (and the classic folders deleted) <strong>before</strong> running this upgrade. If not done yet, run the Classic&rarr;Modern migration path first.';
 }
 
 function backLinkHtml() {
@@ -484,7 +580,9 @@ function showNode(nodeId) {
     const single = node.options.length <= 2 || node.wide;
     controls = '<div class="opt-grid' + (single ? ' single' : '') + '">' + node.options.map((opt, i) =>
       '<div class="opt-card" data-i="' + i + '"><span class="ic">' + iconForLabel(opt.label) + '</span>' + escapeHtml(opt.label) + '</div>'
-    ).join('') + '</div>';
+    ).join('') + '</div>' +
+    '<div class="other-row-label">Or just describe it in your own words:</div>' +
+    '<div class="other-row"><input type="text" id="otherTxt_' + nodeId + '" placeholder="e.g. customer\'s Orchestrator won\'t start after the upgrade&hellip;"><button class="other-send" id="otherGo_' + nodeId + '" title="Send">➤</button></div>';
   } else if (node.type === 'select') {
     controls = '<div class="field-row">' + versionSelectHtml('sel_' + nodeId) + '<button class="go-btn" id="go_' + nodeId + '">Continue →</button></div>';
   } else if (node.type === 'text') {
@@ -502,10 +600,35 @@ function showNode(nodeId) {
         advance(node, opt.next);
       });
     });
-  } else if (node.type === 'select') {
-    document.getElementById('go_' + nodeId).addEventListener('click', () => {
-      const val = document.getElementById('sel_' + nodeId).value;
+    const submitOther = () => {
+      const txt = document.getElementById('otherTxt_' + nodeId);
+      const val = txt.value.trim();
       if (!val) return;
+      const match = matchOptionFuzzy(node.options, val);
+      answers[node.answerKey] = val;
+      progressLog.push({ q: node.shortQ || node.question, a: val });
+      renderSidebar();
+      if (match) { advance(node, match.next); }
+      else {
+        const fb = typeof node.fallbackNext === 'function' ? node.fallbackNext(answers) : (node.fallbackNext || node.options[0].next);
+        advance(node, fb);
+      }
+    };
+    document.getElementById('otherGo_' + nodeId).addEventListener('click', submitOther);
+    document.getElementById('otherTxt_' + nodeId).addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); submitOther(); }
+    });
+  } else if (node.type === 'select') {
+    const selEl = document.getElementById('sel_' + nodeId);
+    const otherInput = document.getElementById('sel_' + nodeId + '_other');
+    selEl.addEventListener('change', () => {
+      otherInput.style.display = selEl.value === '__other__' ? 'block' : 'none';
+      if (selEl.value === '__other__') otherInput.focus();
+    });
+    document.getElementById('go_' + nodeId).addEventListener('click', () => {
+      let val = selEl.value;
+      if (!val) return;
+      if (val === '__other__') { val = otherInput.value.trim(); if (!val) return; }
       answers[node.answerKey] = val;
       progressLog.push({ q: node.shortQ || node.question, a: val });
       renderSidebar();
@@ -537,17 +660,38 @@ function restart() {
 }
 document.getElementById('restartBtn').addEventListener('click', restart);
 
+/* ---------- Freshness indicator / Check for updates ---------- */
+(function initFreshness() {
+  const freshTextEl = document.getElementById('freshText');
+  const btn = document.getElementById('checkUpdatesBtn');
+  function formatFreshDate(iso) {
+    const d = new Date(iso + 'T00:00:00');
+    return d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+  }
+  freshTextEl.textContent = 'Last verified ' + formatFreshDate(LAST_VERIFIED);
+
+  btn.addEventListener('click', () => {
+    const orig = btn.textContent;
+    if (!CANONICAL_URL) {
+      btn.textContent = 'Manually distributed — ask whoever sent you this file for the latest copy';
+      setTimeout(() => { btn.textContent = orig; }, 4000);
+      return;
+    }
+    window.open(CANONICAL_URL, '_blank');
+  });
+})();
+
 /* ---------- decision tree ---------- */
 const TREE = {
   start: {
     question: "What do you need help with?", shortQ: "Intent", type: 'choice', answerKey: 'intent', wide: true,
+    fallbackNext: 'trouble_error',
     options: [
       { label: "Fresh install", next: 'install_type' },
       { label: "Upgrade an existing install", next: 'upgrade_type' },
       { label: "Migrate Standalone to Automation Cloud", next: 'migration_current' },
       { label: "Onboard a tenant / set up a credential store", next: 'onboard_type' },
-      { label: "Migrate Classic folders to Modern folders", next: 'folders_version' },
-      { label: "Something is broken (troubleshoot)", next: 'trouble_error' }
+      { label: "Migrate Classic folders to Modern folders", next: 'classicmodern_version' }
     ]
   },
   install_type: {
@@ -560,30 +704,31 @@ const TREE = {
     options: [ { label: "Single-node", next: 'TERM_STANDALONE_INSTALL' }, { label: "Multi-node / HA", next: 'TERM_STANDALONE_INSTALL' } ]
   },
   install_as_platform: {
-    question: "Which platform?", shortQ: "Platform", type: 'choice', answerKey: 'platform', wide: true,
+    question: "Which platform? (AKS/EKS/OpenShift/on-prem K8s use the uipathctl + input.json path; GCP is a separate self-managed RKE2 installer \u2014 see the note at the top of the checklist)", shortQ: "Platform", type: 'choice', answerKey: 'platform', wide: true,
     options: [
       { label: "AKS (Azure)", next: 'install_as_profile' }, { label: "EKS (AWS)", next: 'install_as_profile' },
-      { label: "GKE (Google)", next: 'install_as_profile' }, { label: "OpenShift", next: 'install_as_profile' },
-      { label: "On-prem Kubernetes", next: 'install_as_profile' }
+      { label: "OpenShift", next: 'install_as_profile' }, { label: "On-prem / existing Kubernetes", next: 'install_as_profile' },
+      { label: "GCP (self-managed Linux/RKE2 installer)", next: 'install_as_profile' }
     ]
   },
   install_as_profile: {
-    question: "Deployment profile?", shortQ: "Profile", type: 'choice', answerKey: 'profile', wide: true,
+    question: "input.json profile? (\"ha\" is the only value confirmed in UiPath's own AKS/EKS samples \u2014 pick Other if you're not sure)", shortQ: "Profile", type: 'choice', answerKey: 'profile', wide: true,
     options: [
-      { label: "single_node_serverless (dev/test)", next: 'install_as_airgap' },
-      { label: "multi_node_serverless (small prod)", next: 'install_as_airgap' },
-      { label: "ha_prod (production HA)", next: 'install_as_airgap' },
-      { label: "custom", next: 'install_as_airgap' }
+      { label: "ha (production, high availability)", next: 'install_as_version' },
+      { label: "Other / not sure \u2014 verify against input.json", next: 'install_as_version' }
     ]
   },
+  install_as_version: { question: "Target Automation Suite version?", shortQ: "Target version", type: 'select', answerKey: 'targetVersion', next: 'install_as_airgap' },
   install_as_airgap: {
     question: "Air-gapped (no outbound internet)?", shortQ: "Air-gapped", type: 'choice', answerKey: 'airgap',
     options: [ { label: "Yes, air-gapped", next: 'TERM_AS_INSTALL' }, { label: "No, has internet access", next: 'TERM_AS_INSTALL' } ]
   },
   upgrade_type: {
     question: "Standalone or Automation Suite?", shortQ: "Deployment type", type: 'choice', answerKey: 'deployType',
-    options: [ { label: "Standalone", next: 'upgrade_standalone_current' }, { label: "Automation Suite", next: 'TERM_AS_UPGRADE' } ]
+    options: [ { label: "Standalone", next: 'upgrade_standalone_current' }, { label: "Automation Suite", next: 'upgrade_as_current' } ]
   },
+  upgrade_as_current: { question: "Current Automation Suite version (exact)?", shortQ: "Current version", type: 'select', answerKey: 'currentVersion', next: 'upgrade_as_target' },
+  upgrade_as_target: { question: "Target Automation Suite version?", shortQ: "Target version", type: 'select', answerKey: 'targetVersion', next: 'TERM_AS_UPGRADE' },
   upgrade_standalone_current: { question: "Current version (exact)?", shortQ: "Current version", type: 'select', answerKey: 'currentVersion', next: 'upgrade_standalone_target' },
   upgrade_standalone_target: { question: "Target version?", shortQ: "Target version", type: 'select', answerKey: 'targetVersion', next: 'upgrade_standalone_mode' },
   upgrade_standalone_mode: {
@@ -609,6 +754,7 @@ const TREE = {
   },
   onboard_type: {
     question: "New tenant onboarding, credential store setup, or both?", shortQ: "Onboarding kind", type: 'choice', answerKey: 'onboardKind', wide: true,
+    fallbackNext: 'onboard_store',
     options: [
       { label: "New tenant only", value: 'tenant', next: 'TERM_ONBOARD' },
       { label: "Credential store only", value: 'store', next: 'onboard_store' },
@@ -622,22 +768,20 @@ const TREE = {
       { label: "HashiCorp Vault", next: 'TERM_ONBOARD' }, { label: "BeyondTrust", next: 'TERM_ONBOARD' }
     ]
   },
+  classicmodern_version: {
+    question: "Current Orchestrator version?", shortQ: "Current version", type: 'select', answerKey: 'currentVersion', next: 'classicmodern_count'
+  },
+  classicmodern_count: {
+    question: "Roughly how many classic robots are in scope?", shortQ: "Classic robot count", type: 'choice', answerKey: 'robotCount', wide: true,
+    options: [
+      { label: "Under 500", next: 'TERM_CLASSICMODERN' },
+      { label: "500 – 2,000", next: 'TERM_CLASSICMODERN' },
+      { label: "Over 2,000 (wizard not recommended)", next: 'TERM_CLASSICMODERN' }
+    ]
+  },
   trouble_error: {
     question: "Paste the exact error message or symptom:", shortQ: "Error/symptom", type: 'text', answerKey: 'errorText',
     placeholder: "e.g. The MetadataAddress must use HTTPS", next: 'TERM_TROUBLESHOOT'
-  },
-  folders_version: { question: "Current Orchestrator version?", shortQ: "Current version", type: 'select', answerKey: 'currentVersion', next: 'folders_count' },
-  folders_count: {
-    question: "Roughly how many classic robots are in scope?", shortQ: "Classic robot count", type: 'choice', answerKey: 'robotCount',
-    options: [ { label: "Under ~2,000", next: 'folders_admin' }, { label: "~2,000 or more", next: 'folders_admin' } ]
-  },
-  folders_admin: {
-    question: "Are you an organization admin with the required permissions (Roles, Settings, Users, Robots, Folders)?", shortQ: "Org admin", type: 'choice', answerKey: 'orgAdmin',
-    options: [ { label: "Yes", next: 'folders_reason' }, { label: "No / not sure", next: 'folders_reason' } ]
-  },
-  folders_reason: {
-    question: "Is this migration for a planned upgrade to 2023.10 or later?", shortQ: "For 2023.10+ upgrade", type: 'choice', answerKey: 'forUpgrade',
-    options: [ { label: "Yes", next: 'TERM_FOLDERS' }, { label: "No, standalone task", next: 'TERM_FOLDERS' } ]
   },
 
   TERM_STANDALONE_INSTALL: { terminal: true, render: (a) => {
@@ -649,19 +793,35 @@ const TREE = {
       scopeChips([a.targetVersion, a.topology]) + warn + actionBar() + renderFileBlock(MD.install) + '</div>';
   }},
   TERM_AS_INSTALL: { terminal: true, render: (a) => {
-    let warn = (a.profile && a.profile.indexOf('single_node_serverless') === 0) ? '<div class="warn">⚠️ single_node_serverless is dev/test only &mdash; never use it in production (data loss risk on node failure).</div>' : '';
+    let warn = '';
+    if (a.targetVersion && VERSION_INFO[a.targetVersion] && VERSION_INFO[a.targetVersion].status === 'End of Life') {
+      warn += '<div class="warn">⚠️ ' + a.targetVersion + ' is End of Life — consider recommending a currently Active LTS version instead.</div>';
+    }
+    if (a.platform && a.platform.indexOf('GCP') === 0) {
+      warn += '<div class="warn">⚠️ GCP uses the separate self-managed Linux/RKE2 installer (cluster_config.json), not the uipathctl/input.json path this checklist otherwise assumes \u2014 see the note at the top of the checklist.</div>';
+    }
     return '<div class="result-card"><div class="result-header"><span class="ic">☸️</span><h2>Automation Suite Install</h2></div>' +
-      scopeChips([a.platform, a.profile, a.airgap]) + warn + actionBar() + renderFileBlock(MD.as) + '</div>';
+      scopeChips([a.platform, a.targetVersion, a.profile, a.airgap]) + warn + actionBar() + renderFileBlock(MD.as) + '</div>';
   }},
   TERM_STANDALONE_UPGRADE: { terminal: true, render: (a) => {
-    const warn = ltsSkipWarning(a.currentVersion, a.targetVersion);
+    const classicWarn = classicFolderUpgradeWarning(a.currentVersion, a.targetVersion);
+    const ltsWarn = ltsSkipWarning(a.currentVersion, a.targetVersion);
+    let warnHtml = '';
+    if (classicWarn) warnHtml += '<div class="warn">⚠️ ' + classicWarn + '</div>';
+    if (ltsWarn) warnHtml += '<div class="warn">⚠️ ' + ltsWarn + '</div>';
     return '<div class="result-card"><div class="result-header"><span class="ic">⬆️</span><h2>Standalone Orchestrator Upgrade</h2></div>' +
       scopeChips([a.currentVersion + ' → ' + a.targetVersion, a.mode]) +
-      (warn ? '<div class="warn">⚠️ ' + warn + '</div>' : '') + actionBar() + renderFileBlock(MD.upgrade) + '</div>';
+      warnHtml + actionBar() + renderFileBlock(MD.upgrade) + '</div>';
   }},
   TERM_AS_UPGRADE: { terminal: true, render: (a) => {
+    const classicWarn = classicFolderUpgradeWarning(a.currentVersion, a.targetVersion);
+    const ltsWarn = ltsSkipWarning(a.currentVersion, a.targetVersion);
+    let warnHtml = '';
+    if (classicWarn) warnHtml += '<div class="warn">⚠️ ' + classicWarn + '</div>';
+    if (ltsWarn) warnHtml += '<div class="warn">⚠️ ' + ltsWarn + '</div>';
     return '<div class="result-card"><div class="result-header"><span class="ic">⬆️</span><h2>Automation Suite Upgrade</h2></div>' +
-      scopeChips(['Automation Suite']) + actionBar() + renderFileBlock(MD.as) + '</div>';
+      scopeChips([(a.currentVersion || '?') + ' → ' + (a.targetVersion || '?')]) +
+      warnHtml + actionBar() + renderFileBlock(MD.as) + '</div>';
   }},
   TERM_MIGRATION: { terminal: true, render: (a) => {
     let warn = '';
@@ -679,20 +839,16 @@ const TREE = {
     return '<div class="result-card"><div class="result-header"><span class="ic">🔐</span><h2>Tenant / Credential Store Onboarding</h2></div>' +
       scopeChips([a.onboardKind, a.store]) + actionBar() + renderFileBlock(MD.onboarding) + '</div>';
   }},
-  TERM_FOLDERS: { terminal: true, render: (a) => {
+  TERM_CLASSICMODERN: { terminal: true, render: (a) => {
     let warn = '';
-    if (a.robotCount && a.robotCount.indexOf('2,000 or more') !== -1) {
-      warn += '<div class="warn">⚠️ At ~2,000+ classic robots per folder set, the built-in wizard is not recommended &mdash; plan a dedicated migration strategy instead.</div>';
+    if (a.robotCount && a.robotCount.indexOf('Over 2,000') === 0) {
+      warn = '<div class="warn">⚠️ Over 2,000 classic robots &mdash; the built-in migration wizard is not recommended at this scale. Plan a dedicated migration strategy instead of the self-service wizard.</div>';
     }
-    if (a.orgAdmin && a.orgAdmin.indexOf('No') === 0) {
-      warn += '<div class="warn">⚠️ The migration wizard won\'t open without organization-admin permissions (Roles, Settings, Users, Robots, Folders). Get that sorted first.</div>';
+    if (a.currentVersion && ALL_VERSIONS.indexOf(a.currentVersion) !== -1 && ALL_VERSIONS.indexOf(a.currentVersion) < ALL_VERSIONS.indexOf('2023.10')) {
+      warn += '<div class="warn">⚠️ Current version is pre-2023.10 &mdash; if this migration is happening ahead of an upgrade, sequence it as: migrate/delete classic folders first, then upgrade. 2023.10+ setup will block on remaining classic objects otherwise.</div>';
     }
-    if (a.forUpgrade === 'Yes') {
-      warn += '<div class="warn">🧭 Sequence it clearly: migrate and delete all Classic folders <strong>first</strong>, then upgrade &mdash; 2023.10+ setup blocks if any classic objects remain.</div>';
-    }
-    return '<div class="result-card"><div class="result-header"><span class="ic">📁</span><h2>Classic → Modern Folder Migration</h2></div>' +
-      scopeChips([a.currentVersion, a.robotCount + ' robots', 'org admin: ' + a.orgAdmin, 'for 2023.10+ upgrade: ' + a.forUpgrade]) +
-      warn + actionBar() + renderFileBlock(MD.folders) + '</div>';
+    return '<div class="result-card"><div class="result-header"><span class="ic">🗂️</span><h2>Classic → Modern Folder Migration</h2></div>' +
+      scopeChips([a.currentVersion, a.robotCount]) + warn + actionBar() + renderFileBlock(MD.classicmodern) + '</div>';
   }},
   TERM_TROUBLESHOOT: { terminal: true, render: (a) => {
     const q = (a.errorText || '').toLowerCase();
