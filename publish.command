@@ -21,9 +21,39 @@ git add -A
 git commit -m "Update $(date '+%Y-%m-%d %H:%M')" || echo "(nothing new to commit)"
 echo "-> Pushing to GitHub..."
 git push
+
+# ---- Verify the live site actually updates; auto-fix a stuck Pages build ----
+URL="https://dinesh12nov.github.io/uipath-orchestrator-assistant/index.html"
+REPO_SLUG="Dinesh12nov/uipath-orchestrator-assistant"
+WANT=$(wc -c < index.html | tr -d ' ')
+
+live_size() { curl -sI "$URL" | awk 'tolower($1)=="content-length:"{gsub(/\r/,"");print $2}'; }
+
+echo "-> Waiting for GitHub Pages to publish (expecting $WANT bytes)..."
+ok=0
+for i in $(seq 1 6); do
+  sleep 20
+  [ "$(live_size)" = "$WANT" ] && { ok=1; break; }
+  echo "   still building... (~$((i*20))s)"
+done
+
+if [ "$ok" != "1" ]; then
+  echo "-> Build looks stuck — forcing a fresh Pages build..."
+  gh api -X POST "repos/$REPO_SLUG/pages/builds" >/dev/null 2>&1 || true
+  for i in $(seq 1 9); do
+    sleep 20
+    [ "$(live_size)" = "$WANT" ] && { ok=1; break; }
+    echo "   rebuilding... (~$((i*20))s)"
+  done
+fi
+
 echo ""
-echo "Done! Any changes will be live in ~1 minute at:"
-echo "  https://dinesh12nov.github.io/uipath-orchestrator-assistant/"
+if [ "$ok" = "1" ]; then
+  echo "✅ LIVE and updated:"
+else
+  echo "⚠️ Not confirmed live yet. Check again in a few minutes, or tell Claude. URL:"
+fi
+echo "   https://dinesh12nov.github.io/uipath-orchestrator-assistant/"
 
 echo ""
 echo "Press any key to close this window..."
