@@ -69,12 +69,6 @@ def main():
     with zipfile.ZipFile(skill) as zf:
         content = {key: read_reference(zf, fn) for key, fn in MAP.items()}
 
-    # Keep a canonical copy in the repo.
-    CANONICAL_DIR.mkdir(exist_ok=True)
-    canonical = CANONICAL_DIR / SKILL_DIRNAME
-    if skill.resolve() != canonical.resolve():
-        canonical.write_bytes(skill.read_bytes())
-
     # Build a fresh MD block. json.dumps produces safe, double-quoted JS string
     # literals (newlines/quotes/unicode escaped), matching the original format.
     lines = ["const MD = {"]
